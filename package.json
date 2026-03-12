@@ -1,0 +1,26 @@
+{
+  "name": "ais-nmea-decoder",
+  "version": "1.0.0",
+  "description": "Decode AIS and NMEA messages",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wayofthefuture/ais-nmea-decoder.git"
+  },
+  "keywords": [
+    "ais",
+    "nmea",
+    "gnss",
+    "decode",
+    "decoder"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/wayofthefuture/ais-nmea-decoder/issues"
+  },
+  "homepage": "https://github.com/wayofthefuture/ais-nmea-decoder#readme"
+}
