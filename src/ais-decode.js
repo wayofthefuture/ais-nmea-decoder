@@ -13,137 +13,137 @@ https://www.apache.org/licenses/LICENSE-2.0
 const DEBUG = false;
 
 const MSG_TYPE = {
-    1: "Position Report Class A",
-    2: "Position Report Class A (Assigned schedule)",
-    3: "Position Report Class A (Response to interrogation)",
-    4: "Base Station Report",
-    5: "Static and Voyage Related Data",
-    6: "Binary Addressed Message",
-    7: "Binary Acknowledge",
-    8: "Binary Broadcast Message",
-    9: "Standard SAR Aircraft Position Report",
-    10: "UTC and Date Inquiry",
-    11: "UTC and Date Response",
-    12: "Addressed Safety Related Message",
-    13: "Safety Related Acknowledgement",
-    14: "Safety Related Broadcast Message",
-    15: "Interrogation",
-    16: "Assignment Mode Command",
-    17: "DGNSS Binary Broadcast Message",
-    18: "Standard Class B CS Position Report",
-    19: "Extended Class B Equipment Position Report",
-    20: "Data Link Management",
-    21: "Aid-to-Navigation Report",
-    22: "Channel Management",
-    23: "Group Assignment Command",
-    24: "Static Data Report",
-    25: "Single Slot Binary Message,",
-    26: "Multiple Slot Binary Message With Communications State",
-    27: "Position Report For Long-Range Applications"
+    1: 'Position Report Class A',
+    2: 'Position Report Class A (Assigned schedule)',
+    3: 'Position Report Class A (Response to interrogation)',
+    4: 'Base Station Report',
+    5: 'Static and Voyage Related Data',
+    6: 'Binary Addressed Message',
+    7: 'Binary Acknowledge',
+    8: 'Binary Broadcast Message',
+    9: 'Standard SAR Aircraft Position Report',
+    10: 'UTC and Date Inquiry',
+    11: 'UTC and Date Response',
+    12: 'Addressed Safety Related Message',
+    13: 'Safety Related Acknowledgement',
+    14: 'Safety Related Broadcast Message',
+    15: 'Interrogation',
+    16: 'Assignment Mode Command',
+    17: 'DGNSS Binary Broadcast Message',
+    18: 'Standard Class B CS Position Report',
+    19: 'Extended Class B Equipment Position Report',
+    20: 'Data Link Management',
+    21: 'Aid-to-Navigation Report',
+    22: 'Channel Management',
+    23: 'Group Assignment Command',
+    24: 'Static Data Report',
+    25: 'Single Slot Binary Message,',
+    26: 'Multiple Slot Binary Message With Communications State',
+    27: 'Position Report For Long-Range Applications'
 };
 
 const NAV_STATUS = {
-    0: "Under way using engine",
-    1: "At anchor",
-    2: "Not under command",
-    3: "Restricted manoeuverability",
-    4: "Constrained by her draught",
-    5: "Moored",
-    6: "Aground",
-    7: "Engaged in Fishing",
-    8: "Under way sailing",
-    9: "Reserved for future amendment of Navigational Status for HSC",
-    10: "Reserved for future amendment of Navigational Status for WIG",
-    11: "Reserved for future use",
-    12: "Reserved for future use",
-    13: "Reserved for future use",
-    14: "AIS-SART is active",
-    15: "Not defined (default)"
+    0: 'Under way using engine',
+    1: 'At anchor',
+    2: 'Not under command',
+    3: 'Restricted manoeuverability',
+    4: 'Constrained by her draught',
+    5: 'Moored',
+    6: 'Aground',
+    7: 'Engaged in Fishing',
+    8: 'Under way sailing',
+    9: 'Reserved for future amendment of Navigational Status for HSC',
+    10: 'Reserved for future amendment of Navigational Status for WIG',
+    11: 'Reserved for future use',
+    12: 'Reserved for future use',
+    13: 'Reserved for future use',
+    14: 'AIS-SART is active',
+    15: 'Not defined (default)'
 };
 
 const VESSEL_TYPE = {
-    0: "Not available (default)",
+    0: 'Not available (default)',
     // 1-19 Reserved for future usage
-    20: "Wing in ground (WIG), all ships of this type",
-    21: "Wing in ground (WIG), Hazardous category A",
-    22: "Wing in ground (WIG), Hazardous category B",
-    23: "Wing in ground (WIG), Hazardous category C",
-    24: "Wing in ground (WIG), Hazardous category D",
-    25: "Wing in ground (WIG), Reserved for future use",
-    26: "Wing in ground (WIG), Reserved for future use",
-    27: "Wing in ground (WIG), Reserved for future use",
-    28: "Wing in ground (WIG), Reserved for future use",
-    29: "Wing in ground (WIG), Reserved for future use",
-    30: "Fishing",
-    31: "Towing",
-    32: "Towing: length exceeds 200m or breadth exceeds 25m",
-    33: "Dredging or underwater ops",
-    34: "Diving ops",
-    35: "Military ops",
-    36: "Sailing",
-    37: "Pleasure Craft",
-    38: "Reserved",
-    39: "Reserved",
-    40: "High speed craft (HSC), all ships of this type",
-    41: "High speed craft (HSC), Hazardous category A",
-    42: "High speed craft (HSC), Hazardous category B",
-    43: "High speed craft (HSC), Hazardous category C",
-    44: "High speed craft (HSC), Hazardous category D",
-    45: "High speed craft (HSC), Reserved for future use",
-    46: "High speed craft (HSC), Reserved for future use",
-    47: "High speed craft (HSC), Reserved for future use",
-    48: "High speed craft (HSC), Reserved for future use",
-    49: "High speed craft (HSC), No additional information",
-    50: "Pilot Vessel",
-    51: "Search and Rescue vessel",
-    52: "Tug",
-    53: "Port Tender",
-    54: "Anti-pollution equipment",
-    55: "Law Enforcement",
-    56: "Spare - Local Vessel",
-    57: "Spare - Local Vessel",
-    58: "Medical Transport",
-    59: "Noncombatant ship according to RR Resolution No. 18",
-    60: "Passenger, all ships of this type",
-    61: "Passenger, Hazardous category A",
-    62: "Passenger, Hazardous category B",
-    63: "Passenger, Hazardous category C",
-    64: "Passenger, Hazardous category D",
-    65: "Passenger, Reserved for future use",
-    66: "Passenger, Reserved for future use",
-    67: "Passenger, Reserved for future use",
-    68: "Passenger, Reserved for future use",
-    69: "Passenger, No additional information",
-    70: "Cargo, all ships of this type",
-    71: "Cargo, Hazardous category A",
-    72: "Cargo, Hazardous category B",
-    73: "Cargo, Hazardous category C",
-    74: "Cargo, Hazardous category D",
-    75: "Cargo, Reserved for future use",
-    76: "Cargo, Reserved for future use",
-    77: "Cargo, Reserved for future use",
-    78: "Cargo, Reserved for future use",
-    79: "Cargo, No additional information",
-    80: "Tanker, all ships of this type",
-    81: "Tanker, Hazardous category A",
-    82: "Tanker, Hazardous category B",
-    83: "Tanker, Hazardous category C",
-    84: "Tanker, Hazardous category D",
-    85: "Tanker, Reserved for future use",
-    86: "Tanker, Reserved for future use",
-    87: "Tanker, Reserved for future use",
-    88: "Tanker, Reserved for future use",
-    89: "Tanker, No additional information",
-    90: "Other Type, all ships of this type",
-    91: "Other Type, Hazardous category A",
-    92: "Other Type, Hazardous category B",
-    93: "Other Type, Hazardous category C",
-    94: "Other Type, Hazardous category D",
-    95: "Other Type, Reserved for future use",
-    96: "Other Type, Reserved for future use",
-    97: "Other Type, Reserved for future use",
-    98: "Other Type, Reserved for future use",
-    99: "Other Type, no additional information"
+    20: 'Wing in ground (WIG), all ships of this type',
+    21: 'Wing in ground (WIG), Hazardous category A',
+    22: 'Wing in ground (WIG), Hazardous category B',
+    23: 'Wing in ground (WIG), Hazardous category C',
+    24: 'Wing in ground (WIG), Hazardous category D',
+    25: 'Wing in ground (WIG), Reserved for future use',
+    26: 'Wing in ground (WIG), Reserved for future use',
+    27: 'Wing in ground (WIG), Reserved for future use',
+    28: 'Wing in ground (WIG), Reserved for future use',
+    29: 'Wing in ground (WIG), Reserved for future use',
+    30: 'Fishing',
+    31: 'Towing',
+    32: 'Towing: length exceeds 200m or breadth exceeds 25m',
+    33: 'Dredging or underwater ops',
+    34: 'Diving ops',
+    35: 'Military ops',
+    36: 'Sailing',
+    37: 'Pleasure Craft',
+    38: 'Reserved',
+    39: 'Reserved',
+    40: 'High speed craft (HSC), all ships of this type',
+    41: 'High speed craft (HSC), Hazardous category A',
+    42: 'High speed craft (HSC), Hazardous category B',
+    43: 'High speed craft (HSC), Hazardous category C',
+    44: 'High speed craft (HSC), Hazardous category D',
+    45: 'High speed craft (HSC), Reserved for future use',
+    46: 'High speed craft (HSC), Reserved for future use',
+    47: 'High speed craft (HSC), Reserved for future use',
+    48: 'High speed craft (HSC), Reserved for future use',
+    49: 'High speed craft (HSC), No additional information',
+    50: 'Pilot Vessel',
+    51: 'Search and Rescue vessel',
+    52: 'Tug',
+    53: 'Port Tender',
+    54: 'Anti-pollution equipment',
+    55: 'Law Enforcement',
+    56: 'Spare - Local Vessel',
+    57: 'Spare - Local Vessel',
+    58: 'Medical Transport',
+    59: 'Noncombatant ship according to RR Resolution No. 18',
+    60: 'Passenger, all ships of this type',
+    61: 'Passenger, Hazardous category A',
+    62: 'Passenger, Hazardous category B',
+    63: 'Passenger, Hazardous category C',
+    64: 'Passenger, Hazardous category D',
+    65: 'Passenger, Reserved for future use',
+    66: 'Passenger, Reserved for future use',
+    67: 'Passenger, Reserved for future use',
+    68: 'Passenger, Reserved for future use',
+    69: 'Passenger, No additional information',
+    70: 'Cargo, all ships of this type',
+    71: 'Cargo, Hazardous category A',
+    72: 'Cargo, Hazardous category B',
+    73: 'Cargo, Hazardous category C',
+    74: 'Cargo, Hazardous category D',
+    75: 'Cargo, Reserved for future use',
+    76: 'Cargo, Reserved for future use',
+    77: 'Cargo, Reserved for future use',
+    78: 'Cargo, Reserved for future use',
+    79: 'Cargo, No additional information',
+    80: 'Tanker, all ships of this type',
+    81: 'Tanker, Hazardous category A',
+    82: 'Tanker, Hazardous category B',
+    83: 'Tanker, Hazardous category C',
+    84: 'Tanker, Hazardous category D',
+    85: 'Tanker, Reserved for future use',
+    86: 'Tanker, Reserved for future use',
+    87: 'Tanker, Reserved for future use',
+    88: 'Tanker, Reserved for future use',
+    89: 'Tanker, No additional information',
+    90: 'Other Type, all ships of this type',
+    91: 'Other Type, Hazardous category A',
+    92: 'Other Type, Hazardous category B',
+    93: 'Other Type, Hazardous category C',
+    94: 'Other Type, Hazardous category D',
+    95: 'Other Type, Reserved for future use',
+    96: 'Other Type, Reserved for future use',
+    97: 'Other Type, Reserved for future use',
+    98: 'Other Type, Reserved for future use',
+    99: 'Other Type, no additional information'
 };
 
 
@@ -153,31 +153,31 @@ class AisDecode {
     constructor(input, session) {
         this.bitarray = [];
         this.valid = false; // will move to 'true' if parsing succeed
-        this.error = "";    // for returning error message if not valid
+        this.error = '';    // for returning error message if not valid
 
-        if (Object.prototype.toString.call(input) !== "[object String]") {
-            this.error = "AisDecode: Sentence is not of type string.";
+        if (Object.prototype.toString.call(input) !== '[object String]') {
+            this.error = 'AisDecode: Sentence is not of type string.';
             return;
         } else {
             input = input.trim();
         }
 
         if (input.length === 0) {
-            this.error = "AisDecode: Sentence is empty or spaces.";
+            this.error = 'AisDecode: Sentence is empty or spaces.';
             return;
         } else if (!this.validateChecksum(input)) {
-            this.error = "AisDecode: Sentence checksum is invalid.";
+            this.error = 'AisDecode: Sentence checksum is invalid.';
             return;
         }
 
         // split nmea message !AIVDM,1,1,,B,B69>7mh0?J<:>05B0`0e;wq2PHI8,0*3D'
-        const nmea = input.split(",");
+        const nmea = input.split(',');
 
         if (nmea.length !== 7) {
-            this.error = "AisDecode: Sentence contains invalid number of parts.";
+            this.error = 'AisDecode: Sentence contains invalid number of parts.';
             return;
-        } else if (nmea[0] !== "!AIVDM" && nmea[0] !== "!AIVDO") {   //AIVDM = standard, AIVDO = own ship
-            this.error = "AisDecode: Invalid message prefix.";
+        } else if (nmea[0] !== '!AIVDM' && nmea[0] !== '!AIVDO') {   //AIVDM = standard, AIVDO = own ship
+            this.error = 'AisDecode: Invalid message prefix.';
             return;
         }
 
@@ -188,23 +188,23 @@ class AisDecode {
         const sequence_id = nmea[3].length > 0 ? Number(nmea[3]) : NaN;
 
         if (message_count > 1) {
-            if (Object.prototype.toString.call(session) !== "[object Object]") {
-                throw "A session object is required to maintain state for decoding multipart AIS messages.";
+            if (Object.prototype.toString.call(session) !== '[object Object]') {
+                throw 'A session object is required to maintain state for decoding multipart AIS messages.';
             }
 
             if (message_id > 1) {
                 if (nmea[0] !== session.formatter) {
-                    this.error = "AisDecode: Sentence does not match formatter of current session.";
+                    this.error = 'AisDecode: Sentence does not match formatter of current session.';
                     return;
                 }
 
                 if (session[message_id - 1] === undefined) {
-                    this.error = "AisDecode: Session is missing prior message part, cannot parse partial AIS message.";
+                    this.error = 'AisDecode: Session is missing prior message part, cannot parse partial AIS message.';
                     return;
                 }
 
                 if (session.sequence_id !== sequence_id) {
-                    this.error = "AisDecode: Session IDs do not match. Cannot recontruct AIS message.";
+                    this.error = 'AisDecode: Session IDs do not match. Cannot recontruct AIS message.';
                     return;
                 }
             } else {
@@ -257,7 +257,7 @@ class AisDecode {
         this.aistype   = this.GetInt (0,6);
         this.repeat    = this.GetInt (6,2);
         this.immsi     = this.GetInt (8,30);
-        this.mmsi      = ("000000000" + this.immsi).slice(-9);
+        this.mmsi      = ('000000000' + this.immsi).slice(-9);
 
         switch (this.aistype) {
             case 1:
@@ -429,7 +429,7 @@ class AisDecode {
             // 98 = auxiliary craft
             if (parseInt(this.immsi / 10000000) === 98) {
                 const mothership = this.GetInt(132, 30);
-                this.mothership = ("000000000" + mothership).slice(-9);
+                this.mothership = ('000000000' + mothership).slice(-9);
             } else {
                 this.dimA = this.GetInt(132, 9);
                 this.dimB = this.GetInt(141, 9);
@@ -566,9 +566,9 @@ class AisDecode {
     }
 
     validateChecksum(input) {
-        if (typeof input === "string") {
-            const loc1 = input.indexOf("!");
-            const loc2 = input.indexOf("*");
+        if (typeof input === 'string') {
+            const loc1 = input.indexOf('!');
+            const loc2 = input.indexOf('*');
 
             if (loc1 === 0 && loc2 > 0) {
                 const body = input.substring(1, loc2);
@@ -616,7 +616,7 @@ class AisDecode {
 
         // extended message are not supported
         if (this.bitarray.length < (start + len) / 6) {
-            //console.log ("AisDecode: ext msg not implemented GetStr(%d,%d)", start, len);
+            //console.log ('AisDecode: ext msg not implemented GetStr(%d,%d)', start, len);
             len = parseInt(((this.bitarray.length - start / 6) / 6) * 6) * 6;
         }
         // messages in the wild sometimes produce a negative len which will cause a buffer range error
