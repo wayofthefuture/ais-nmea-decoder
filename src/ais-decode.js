@@ -11,7 +11,8 @@ https://www.apache.org/licenses/LICENSE-2.0
 import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants.js';
 
 const enableLogging = false;
-
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 export default class AisDecode {
     constructor(input, session) {
@@ -61,19 +62,24 @@ export default class AisDecode {
             return undefined;
         }
 
+        // positive total number of fragments
+        if (Number(parts[1]) === 0) {
+            this.error = 'AisDecode: Invalid fragment count.';
+            return undefined;
+        }
+
         return parts;
     }
     
     _parseMessage(parts, session) {
         const totalFragments = Number(parts[1]);
+        const channel = parts[4];
+        const rawPayload = parts[5];
 
-        if (totalFragments === 0) {
-            this.error = 'AisDecode: Invalid fragment count.';
-            return false;
-        }
-        
+        this.channel = channel;
+
         if (totalFragments === 1) {
-            this._extractPayload(parts);
+            this.payload = textEncoder.encode(rawPayload);
             return true;
         }
 
@@ -94,9 +100,7 @@ export default class AisDecode {
             session.sequenceId = sequenceId;
         }
 
-        this._extractPayload(parts);
-        session[currentFragment] = {payload: this.payload, length: this.msglen};
-
+        session[currentFragment] = {rawPayload};
         if (currentFragment < totalFragments) return false;
 
         this._combinePayloads(session);
@@ -125,28 +129,19 @@ export default class AisDecode {
         return null;
     }
 
-    _extractPayload(parts) {
-        this.payload = new Buffer(parts[5]);
-        this.msglen = this.payload.length;
-        this.channel = parts[4];
-    }
-
     _combinePayloads(session) {
         const payloads = [];
-        let len = 0;
 
         for (let i = 1; i <= session.fragmentCount; ++i) {
-            payloads.push(session[i].payload);
-            len += session[i].length;
+            payloads.push(session[i].rawPayload);
         }
 
-        this.payload = Buffer.concat(payloads, len);
-        this.msglen = this.payload.length;
+        this.payload = textEncoder.encode(payloads.join(''));
     }
-    
+
     _decodeBitArray() {
         // decode printable 6bit AIS/IEC binary format
-        for (let i = 0; i < this.msglen; i++) {
+        for (let i = 0; i < this.payload.length; i++) {
             let byte = this.payload[i];
 
             // check byte is not out of range
@@ -499,18 +494,16 @@ export default class AisDecode {
             //console.log ('AisDecode: ext msg not implemented getStr(%d,%d)', start, len);
             len = Math.floor(((this.bitarray.length - start / 6) / 6) * 6) * 6;
         }
-        // messages in the wild sometimes produce a negative len which will cause a buffer range error
-        // exception, stating size argument must not be negative. This occurs in the new Buffer() below.
-        if (len < 0) {
-            return '';
-        }
 
-        //char temp_str[85];
-        const buffer = new Buffer(len / 6);
+        // messages in the wild sometimes produce a negative len which will cause a buffer range error
+        if (len < 0) return '';
+
+        const bytes = new Uint8Array(len / 6);
         let cp, cx, cs, c0;
         let acc = 0;
         let k = 0;
         let i = 0;
+
         while (i < len) {
             acc = 0;
             for (let j = 0; j < 6; j++) {
@@ -522,13 +515,14 @@ export default class AisDecode {
                 acc |= c0;
                 i++;
             }
-            buffer[k] = acc; // opencpn
-            if (acc < 0x20) buffer[k] += 0x40;
-            else            buffer[k] = acc;  // opencpn enfoce (acc & 0x3f) ???
-            if (buffer[k] === 0x40) break; // name end with '@'
+            bytes[k] = acc;
+            if (acc < 0x20) bytes[k] += 0x40;
+            else            bytes[k] = acc;
+            if (bytes[k] === 0x40) break; // name end with '@'
             k++;
         }
-        return (buffer.toString('utf8', 0, k));
+
+        return textDecoder.decode(bytes.subarray(0, k));
     }
 
     getNavStatus() {
