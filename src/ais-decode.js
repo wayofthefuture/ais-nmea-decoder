@@ -198,9 +198,6 @@ export default class AisDecode {
             case 14:
                 this._decodeTextMessage();
                 break;
-            case 8:
-                this._decodeBinaryBroadcastMessage(input);
-                break;
             case 27:
                 this._decodeLongRangeBroadcast();
                 break;
@@ -241,6 +238,7 @@ export default class AisDecode {
     _decodeClassBPositionReport() {
         this.class = 'B';
         this.status = -1;  // Class B targets have no status.  Enforce this...
+
         let lon = this.getInt(57, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
         lon = parseFloat(lon / 600000);
@@ -297,11 +295,13 @@ export default class AisDecode {
 
     _decodeStaticVoyageData() {
         this.class = 'A';
+
         // Get the AIS Version indicator
         // 0 = station compliant with Recommendation ITU-R M.1371-1
         // 1 = station compliant with Recommendation ITU-R M.1371-3 (or later)
         // 2 = station compliant with Recommendation ITU-R M.1371-5 (or later)
         // 3 = station compliant with future editions
+
         const AIS_version_indicator = this.getInt(38,2);
         if (AIS_version_indicator < 3) {
             this.imo    = this.getInt(40,30);
@@ -327,10 +327,14 @@ export default class AisDecode {
     _decodeStaticDataReport() {
         this.class = 'B';
         this.part = this.getInt(38, 2);
-        if (0 === this.part) {
+
+        if (this.part === 0) {
             this.name = this.getStr(40, 120).trim();
             this.valid = true;
-        } else if (this.part === 1) {
+            return;
+        }
+
+        if (this.part === 1) {
             this.type = this.getInt(40, 8);
             this.sign = this.getStr(90, 42).trim();
 
@@ -370,7 +374,6 @@ export default class AisDecode {
 
     _decodeSarAircraftReport() {
         this.class = '-';
-
         this.alt = this.getInt(38, 12);
 
         let lon = this.getInt(61, 28);
@@ -393,7 +396,6 @@ export default class AisDecode {
 
     _decodeAidToNavigation() {
         this.class = '-';
-
         this.type = this.getInt(38, 5);
         this.name = this.getStr(43, 120).trim();
 
@@ -432,25 +434,6 @@ export default class AisDecode {
             const len = parseInt(((this.bitarray.length - 40 / 6) / 6) * 6) * 6;
             this.txt = this.getStr(40, len).trim();
             this.valid = true;
-        }
-    }
-
-    _decodeBinaryBroadcastMessage(input) {
-        this.dac = this.getInt(40, 10);
-        this.fid = this.getInt(50, 6);
-        // Inland ship static and voyage related data
-        if (this.dac === 200 && this.fid === 10) {
-            this.class = '-';
-            this.eni   = this.getStr(56,48).trim();
-            this.len   = parseFloat(this.getInt(104, 13)) / 10.;
-            this.wid   = parseFloat(this.getInt(117, 10)) / 10.;
-            this.eri   = this.getInt(127, 14);
-            this.draft = parseFloat(this.getInt(144, 11)) / 100.0;
-            this.valid = true;
-        } else {
-            if (DEBUG) {
-                console.log('---- type=%d %s dac=%d fid=%d %s', this.aistype, this.mmsi, this.dac, this.fid, input);
-            }
         }
     }
 

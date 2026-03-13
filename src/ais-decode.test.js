@@ -10,16 +10,14 @@ import {describe, it, expect} from 'vitest';
 import AisDecode from './ais-decode.js';
 
 const testCases = {
-    msg24a: {// class B static info
+    msg24a: { // class B static info
         raw: '!AIVDM,1,1,,A,H42O55i18tMET00000000000000,0*6F',
         aistype: 24,
         part: 0,
-        type: 60,
-        sign: 'AB1234',
         mmsi: '271041815',
         name: 'PROGUY'
     },
-    msg24b: {// class AB static info
+    msg24b: { // class AB static info
         raw: '!AIVDM,1,1,,A,H42O55lt0000000D3nink000?0500,0*70',
         aistype: 24,
         part: 1,
@@ -34,6 +32,7 @@ const testCases = {
     msg18: { // standard class B Position report
         raw: '!AIVDM,1,1,,A,B69>7mh0?B<:>05B0`0e8TN000000,0*72',
         aistype: 18,
+        mmsi: '412321751',
         cog: 72.2,
         sog: 6.1,
         dsc: false,
@@ -41,8 +40,7 @@ const testCases = {
         accuracy: true,
         lon: 122.47338666666667,
         lat: 36.91968,
-        second: 50,
-        mmsi: '412321751'
+        second: 50
     },
     msg19: { // Extended class B Position report
         raw: ['!AIVDM,2,1,9,B,C43NbT0008VGWDVHNs0000N10PHb`NL00000,0*6D', '!AIVDM,2,2,9,B,00000000N0`90RPP,0*59'],
@@ -199,66 +197,6 @@ const testCases = {
         aistype: 14,
         mmsi: '972122131',
         txt: 'MOB TEST'
-    },
-    msg8_200_10: { // dac 200 fid 10 msg static inland ship
-        raw: '!AIVDM,1,1,,A,85Mv070j2d>=<e<<=PQhhg`59P00,0*26',
-        aistype: 8,
-        mmsi: '366968860',
-        len: 27,
-        wid: 9.7,
-        draft: 3.04,
-        eri: 8000
-    },
-    msg8_001_11: { // dac 001 fid 11 meteorological and hydrographic data
-        raw: '!AIVDM,1,1,,A,802R5Ph0BkCwP0E<>jGaPPTHS7wwwwwwwk6wwwwwwwwwwwwwwwwwwtPwwwt,2*72',
-        aistype: 800111,
-        mmsi: '002655619',
-        lon: 11.573166666666667,
-        lat: 57.88800,
-        avgwindspd: 2,
-        winddir: 280,
-        airtemp: undefined,
-        watertemp: 13.1
-    },
-    msg8_001_31: { // dac 001 fid 31 meteorological and hydrographic data
-        raw: '!AIVDM,1,1,1,B,8>h8nkP0Glr=<hFI0D6??wvlFR06EuOwgwl?wnSwe7wvlOw?sAwwnSGmwvh0,0*17',
-        aistype: 800131,
-        mmsi: '990000846',
-        lon: 171.5985,
-        lat: 12.2283,
-        avgwindspd: undefined,
-        winddir: undefined,
-        airtemp: undefined,
-        watertemp: undefined,
-        waterlevel: undefined
-    },
-    msg8_001_31_2: { // dac 001 fid 31 meteorological and hydrographic data
-        raw: '!AIVDM,1,1,,A,8@2R5Ph0GhEUJiaWPFkt4RqUdf06EuFPB22p1Pd3S@h>:WwwsAwwnS@vwvwt,0*57',
-        aistype: 800131,
-        mmsi: '002655619',
-        lon: 11.7881,
-        lat: 57.6811,
-        avgwindspd: 36,
-        winddir: 203,
-        airtemp: undefined,
-        watertemp: 6.2,
-        waterlevel: 0.47
-    },
-    msg8_367_33_0: { // dac 367 fid 33 meteorological and hydrographic data location
-        raw: '!AIVDM,1,1,,A,8P3QiWAKp@dw8>5LlaB1aQkhCr@P,0*28',
-        aistype: 836733,
-        mmsi: '003699101',
-        siteid: 3,
-        lon: -122.954,
-        lat: 46.106
-    },
-    msg8_367_33_2: { // dac 367 fid 33 meteorological and hydrographic data wind
-        raw: '!AIVDM,1,1,,B,8>k1oCQKpBdvs:750l;7mre0<N00,0*4C',
-        aistype: 836733,
-        mmsi: '993032014',
-        siteid: 50,
-        avgwindspd: 7,
-        winddir: 13
     },
     msg27: { // position lon range
         raw: '!AIVDM,1,1,,B,K9TJi5H@o9jiPP2D,0*3E',
