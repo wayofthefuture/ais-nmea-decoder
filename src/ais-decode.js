@@ -16,22 +16,30 @@ const DEBUG = false;
 export default class AisDecode {
     constructor(input, session) {
         this.bitarray = [];
-        this.valid = false; // will move to 'true' if parsing succeed
-        this.error = '';    // for returning error message if not valid
+        this.valid = false;
+        this.error = '';
 
+        const success = this._parseInput(input, session);
+        if (!success) return;
+
+        this._decodeBitarray();
+        this._decodeMessageType(input);
+    }
+
+    _parseInput(input, session) {
         if (Object.prototype.toString.call(input) !== '[object String]') {
             this.error = 'AisDecode: Sentence is not of type string.';
-            return;
+            return false;
         } else {
             input = input.trim();
         }
 
         if (input.length === 0) {
             this.error = 'AisDecode: Sentence is empty or spaces.';
-            return;
+            return false;
         } else if (!this.validateChecksum(input)) {
             this.error = 'AisDecode: Sentence checksum is invalid.';
-            return;
+            return false;
         }
 
         // split nmea message !AIVDM,1,1,,B,B69>7mh0?J<:>05B0`0e;wq2PHI8,0*3D'
@@ -39,10 +47,10 @@ export default class AisDecode {
 
         if (nmea.length !== 7) {
             this.error = 'AisDecode: Sentence contains invalid number of parts.';
-            return;
+            return false;
         } else if (nmea[0] !== '!AIVDM' && nmea[0] !== '!AIVDO') {   //AIVDM = standard, AIVDO = own ship
             this.error = 'AisDecode: Invalid message prefix.';
-            return;
+            return false;
         }
 
         // the input string is part of a multipart message, make sure we were
@@ -59,17 +67,17 @@ export default class AisDecode {
             if (message_id > 1) {
                 if (nmea[0] !== session.formatter) {
                     this.error = 'AisDecode: Sentence does not match formatter of current session.';
-                    return;
+                    return false;
                 }
 
                 if (session[message_id - 1] === undefined) {
                     this.error = 'AisDecode: Session is missing prior message part, cannot parse partial AIS message.';
-                    return;
+                    return false;
                 }
 
                 if (session.sequence_id !== sequence_id) {
                     this.error = 'AisDecode: Session IDs do not match. Cannot recontruct AIS message.';
-                    return;
+                    return false;
                 }
             } else {
                 session.formatter = nmea[0];
@@ -88,7 +96,7 @@ export default class AisDecode {
             session[message_id] = {payload: this.payload, length: this.msglen};
 
             // Not done building the session
-            if (message_id < message_count) return;
+            if (message_id < message_count) return false;
 
             const payloads = [];
             let len = 0;
@@ -102,7 +110,10 @@ export default class AisDecode {
             this.msglen = this.payload.length;
         }
 
+        return true;
+    }
 
+    _decodeBitarray() {
         // decode printable 6bit AIS/IEC binary format
         for (let i = 0; i < this.msglen; i++) {
             let byte = this.payload[i];
@@ -122,7 +133,9 @@ export default class AisDecode {
         this.repeat    = this.GetInt (6,2);
         this.immsi     = this.GetInt (8,30);
         this.mmsi      = ('000000000' + this.immsi).slice(-9);
+    }
 
+    _decodeMessageType(input) {
         switch (this.aistype) {
             case 1:
             case 2:
