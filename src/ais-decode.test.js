@@ -8,11 +8,11 @@ https://www.apache.org/licenses/LICENSE-2.0
 
 'use strict';
 
-var AisDecode= require ('../ApiExport').AisDecode;
-var fs       = require('fs');
+var AisDecode = require('../ApiExport').AisDecode;
+var fs = require('fs');
 
 
-function AisDecodeTest (args) {
+function AisDecodeTest(args) {
 
     if (args !== undefined) this.testSet = args;
     else this.testSet = {
@@ -284,32 +284,32 @@ function AisDecodeTest (args) {
 // compare input with decoded outputs
 AisDecodeTest.prototype.CheckResult = function (test, aisin, aisout, controls) {
     var slot;
-    var count=0;
-    console.log ('\nChecking: [%s] --> [%s]', test, aisin.nmea);
-    for (var element in controls){
+    var count = 0;
+    console.log('\nChecking: [%s] --> [%s]', test, aisin.nmea);
+    for (var element in controls) {
         slot = controls[element];
         if (aisout[slot] !== aisin[slot]) {
-            count ++;
-            console.log ('--> FX (%s) in:[%s] != out:[%s]', slot, aisin[slot], aisout [slot]);
+            count++;
+            console.log('--> FX (%s) in:[%s] != out:[%s]', slot, aisin[slot], aisout [slot]);
         } else {
-            console.log ('--> OK (%s) in:[%s] == out:[%s]', slot, aisin[slot], aisout [slot]);
+            console.log('--> OK (%s) in:[%s] == out:[%s]', slot, aisin[slot], aisout [slot]);
         }
     }
 
-    if (count > 0)  console.log ('** FX Test [%s] Count=%d **', test, count);
-    else console.log ('## OK Test [%s] ##', test);
+    if (count > 0) console.log('** FX Test [%s] Count=%d **', test, count);
+    else console.log('## OK Test [%s] ##', test);
 };
 
 AisDecodeTest.prototype.CheckDecode = function () {
 
     // make sure we get expected output from reference messages
     for (var test in this.testSet) {
-        var aisTest     = this.testSet [test];
+        var aisTest = this.testSet [test];
 
         // Require a string or an array. Turn string into an array. Return for
         // anything else.
-        if(aisTest.nmea instanceof Object) {
-            var session={};
+        if (aisTest.nmea instanceof Object) {
+            var session = {};
             var aisDecoded = new AisDecode(aisTest.nmea[0], session);
             var aisDecoded = new AisDecode(aisTest.nmea[1], session);
         } else {
@@ -317,57 +317,62 @@ AisDecodeTest.prototype.CheckDecode = function () {
         }
 
         if (aisDecoded.valid !== true) {
-            console.log ('\n[%s] invalid AIS payload: %s', test, aisDecoded.error);
+            console.log('\n[%s] invalid AIS payload: %s', test, aisDecoded.error);
         } else {
             switch (aisTest.aistype) {
                 case 1:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'sog', 'cog', 'rot', 'smi']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'sog', 'cog', 'rot', 'smi']);
                     break;
                 case 4:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat']);
                     break;
                 case 5:
-                    this.CheckResult (test, aisTest, aisDecoded, ['name', 'sign', 'dest', 'type', 'draft', 'dimA', 'dimB', 'dimC', 'dimD']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['name', 'sign', 'dest', 'type', 'draft', 'dimA', 'dimB', 'dimC', 'dimD']);
                     break;
                 case 9:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'alt', 'sog', 'cog']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'alt', 'sog', 'cog']);
                     break;
                 case 14:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'txt']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'txt']);
                     break;
                 case 18:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'cog', 'sog']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'cog', 'sog']);
                     break;
                 case 19:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'cog', 'sog', 'name']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'cog', 'sog', 'name']);
                     break;
                 case 21:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'name', 'type', 'lat', 'lon', 'txt', 'offpos', 'virtual']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'name', 'type', 'lat', 'lon', 'txt', 'offpos', 'virtual']);
                     break;
                 case 24:
                     switch (aisTest.part) {
-                        case 0: this.CheckResult(test, aisTest, aisDecoded, ['name']); break;
-                        case 1: this.CheckResult(test, aisTest, aisDecoded, ['sign', 'type', 'dimA', 'dimB', 'dimC', 'dimD']); break;
-                        default: console.log ('hoop test=[%s] message type=[%d] invalid part number [%s]', test, aisTest.aistype, aisDecoded.part);
+                        case 0:
+                            this.CheckResult(test, aisTest, aisDecoded, ['name']);
+                            break;
+                        case 1:
+                            this.CheckResult(test, aisTest, aisDecoded, ['sign', 'type', 'dimA', 'dimB', 'dimC', 'dimD']);
+                            break;
+                        default:
+                            console.log('hoop test=[%s] message type=[%d] invalid part number [%s]', test, aisTest.aistype, aisDecoded.part);
                     }
                     break;
                 case 8:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'len', 'wid', 'draft', 'eri']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'len', 'wid', 'draft', 'eri']);
                     break;
                 case 800111:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'avgwindspd', 'winddir', 'airtemp', 'watertemp']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'avgwindspd', 'winddir', 'airtemp', 'watertemp']);
                     break;
                 case 800131:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'avgwindspd', 'winddir', 'airtemp', 'watertemp', 'waterlevel']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'avgwindspd', 'winddir', 'airtemp', 'watertemp', 'waterlevel']);
                     break;
                 case 836733:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'siteid', 'lon', 'lat', 'avgwindspd', 'winddir']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'siteid', 'lon', 'lat', 'avgwindspd', 'winddir']);
                     break;
                 case 27:
-                    this.CheckResult (test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'cog', 'sog', 'navstatus']);
+                    this.CheckResult(test, aisTest, aisDecoded, ['mmsi', 'lon', 'lat', 'cog', 'sog', 'navstatus']);
                     break;
                 default:
-                    console.log ('hoop test=[%s] message type=[%d] not implemented', test, aisTest.aistype);
+                    console.log('hoop test=[%s] message type=[%d] not implemented', test, aisTest.aistype);
             }
         }
     }
