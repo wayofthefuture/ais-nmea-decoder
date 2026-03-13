@@ -15,9 +15,7 @@ import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_SHIPTYPE_MAP} from'./constants';
 const DEBUG = false;
 
 
-// Ais payload is represented in a 6bits encoded string !(
-// This method is a direct transcription in nodejs of C++ ais-decoder code
-class AisDecode {
+export default class AisDecode {
     constructor(input, session) {
         this.bitarray = [];
         this.valid = false; // will move to 'true' if parsing succeed
@@ -536,5 +534,3 @@ class AisDecode {
         return ERI_SHIPTYPE_MAP[shiptypeERI] ?? shiptypeERI;
     }
 }
-
-module.exports = AisDecode; // http://openmymind.net/2012/2/3/Node-Require-and-Exports/
