@@ -8,7 +8,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 
 'use strict';
 
-import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from'./constants.js';
+import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants.js';
 
 const enableLogging = false;
 
@@ -211,15 +211,10 @@ export default class AisDecode {
         this.class = 'A';
         this.navstatus = this.getInt(38, 4);
 
-        let lon = this.getInt(61, 28);
-        if (lon & 0x08000000) lon |= 0xf0000000;
-        lon = parseFloat(lon / 600000);
+        const lon = this.getLon(61);
+        const lat = this.getLat(89);
 
-        let lat = this.getInt(89, 27);
-        if (lat & 0x04000000) lat |= 0xf8000000;
-        lat = parseFloat(lat / 600000);
-
-        if ((lon <= 180.) && (lat <= 90.)) {
+        if (lon <= 180 && lat <= 90) {
             this.lon = lon;
             this.lat = lat;
             this.valid = true;
@@ -228,7 +223,7 @@ export default class AisDecode {
         this.rot = this.getInt(42, 8, true)
         this.sog = this.getInt(50, 10) / 10;
         this.cog = this.getInt(116, 12) / 10;
-        this.hdg = parseFloat(this.getInt(128, 9));
+        this.hdg = this.getInt(128, 9);
         this.utc = this.getInt(137, 6);
         this.smi = this.getInt(143, 2);
     }
@@ -239,15 +234,10 @@ export default class AisDecode {
         this.repeat = this.getInt(6,2);
         this.accuracy = this.getInt(56, 1);
 
-        let lon = this.getInt(57, 28);
-        if (lon & 0x08000000) lon |= 0xf0000000;
-        lon = parseFloat(lon / 600000);
+        const lon = this.getLon(57);
+        const lat = this.getLat(85);
 
-        let lat = this.getInt(85, 27);
-        if (lat & 0x04000000) lat |= 0xf8000000;
-        lat = parseFloat(lat / 600000);
-
-        if ((lon <= 180.) && (lat <= 90.)) {
+        if (lon <= 180 && lat <= 90) {
             this.lon = lon;
             this.lat = lat;
             this.valid = true;
@@ -255,7 +245,7 @@ export default class AisDecode {
 
         this.sog = this.getInt(46, 10) / 10;
         this.cog = this.getInt(112, 12) / 10;
-        this.hdg = parseFloat(this.getInt(124, 9));
+        this.hdg = this.getInt(124, 9);
         this.utc = this.getInt(134, 6);
         this.dsc = this.getBool(143);
     }
@@ -264,15 +254,10 @@ export default class AisDecode {
         this.class = 'B';
         this.status = -1;  // Class B targets have no status.  Enforce this...
 
-        let lon = this.getInt(57, 28);
-        if (lon & 0x08000000) lon |= 0xf0000000;
-        lon = parseFloat(lon / 600000);
+        const lon = this.getLon(57);
+        const lat = this.getLat(85);
 
-        let lat = this.getInt(85, 27);
-        if (lat & 0x04000000) lat |= 0xf8000000;
-        lat = parseFloat(lat / 600000);
-
-        if ((lon <= 180.) && (lat <= 90.)) {
+        if (lon <= 180 && lat <= 90) {
             this.lon = lon;
             this.lat = lat;
             this.valid = true;
@@ -280,7 +265,7 @@ export default class AisDecode {
 
         this.sog = this.getInt(46, 10) / 10;
         this.cog = this.getInt(112, 12) / 10;
-        this.hdg = parseFloat(this.getInt(124, 9));
+        this.hdg = this.getInt(124, 9);
         this.utc = this.getInt(133, 6);
 
         this.name = this.getStr(143,120).trim();
@@ -305,19 +290,19 @@ export default class AisDecode {
 
         const AIS_version_indicator = this.getInt(38,2);
         if (AIS_version_indicator < 3) {
-            this.imo    = this.getInt(40,30);
-            this.sign   = this.getStr(70,42).trim();
-            this.name   = this.getStr(112,120).trim();
-            this.type   = this.getInt(232,8);
-            this.dimA   = this.getInt(240,9);
-            this.dimB   = this.getInt(249,9);
-            this.dimC   = this.getInt(258,6);
-            this.dimD   = this.getInt(264,6);
-            this.etaMo  = this.getInt(274,4);
-            this.etaDy  = this.getInt(278,5);
-            this.etaHr  = this.getInt(283,5);
-            this.etaMn  = this.getInt(288,6);
-            this.draft  = this.getInt(294, 8 ) / 10.0;
+            this.imo    = this.getInt(40, 30);
+            this.sign   = this.getStr(70, 42).trim();
+            this.name   = this.getStr(112, 120).trim();
+            this.type   = this.getInt(232, 8);
+            this.dimA   = this.getInt(240, 9);
+            this.dimB   = this.getInt(249, 9);
+            this.dimC   = this.getInt(258, 6);
+            this.dimD   = this.getInt(264, 6);
+            this.etaMo  = this.getInt(274, 4);
+            this.etaDy  = this.getInt(278, 5);
+            this.etaHr  = this.getInt(283, 5);
+            this.etaMn  = this.getInt(288, 6);
+            this.draft  = this.getInt(294, 8) / 10;
             this.dest   = this.getStr(302, 120).trim();
             this.len    = this.dimA + this.dimB;
             this.wid    = this.dimC + this.dimD;
@@ -340,7 +325,7 @@ export default class AisDecode {
             this.sign = this.getStr(90, 42).trim();
 
             // 98 = auxiliary craft
-            if (parseInt(this.immsi / 10000000) === 98) {
+            if (Math.floor(this.immsi / 10000000) === 98) {
                 const mothership = this.getInt(132, 30);
                 this.mothership = ('000000000' + mothership).slice(-9);
             } else {
@@ -358,15 +343,10 @@ export default class AisDecode {
     _decodeBaseStationReport() {
         this.class = '-';
 
-        let lon = this.getInt(79, 28);
-        if (lon & 0x08000000) lon |= 0xf0000000;
-        lon = parseFloat(lon / 600000);
+        const lon = this.getLon(79);
+        const lat = this.getLat(107);
 
-        let lat = this.getInt(107, 27);
-        if (lat & 0x04000000) lat |= 0xf8000000;
-        lat = parseFloat(lat / 600000);
-
-        if ((lon <= 180.) && (lat <= 90.)) {
+        if (lon <= 180 && lat <= 90) {
             this.lon = lon;
             this.lat = lat;
             this.valid = true;
@@ -377,21 +357,17 @@ export default class AisDecode {
         this.class = '-';
         this.alt = this.getInt(38, 12);
 
-        let lon = this.getInt(61, 28);
-        if (lon & 0x08000000) lon |= 0xf0000000;
-        lon = parseFloat(lon / 600000);
+        const lon = this.getLon(61);
+        const lat = this.getLat(89);
 
-        let lat = this.getInt(89, 27);
-        if (lat & 0x04000000) lat |= 0xf8000000;
-        lat = parseFloat(lat / 600000);
-
-        if ((lon <= 180.) && (lat <= 90.)) {
+        if (lon <= 180 && lat <= 90) {
             this.lon = lon;
             this.lat = lat;
             this.valid = true;
         } else this.valid = false;
 
-        this.sog = parseFloat(this.getInt(50, 10));
+        //whole numbers for aircraft speed
+        this.sog = this.getInt(50, 10);
         this.cog = this.getInt(116, 12) / 10;
     }
 
@@ -400,15 +376,10 @@ export default class AisDecode {
         this.type = this.getInt(38, 5);
         this.name = this.getStr(43, 120).trim();
 
-        let lon = this.getInt(164, 28);
-        if (lon & 0x08000000) lon |= 0xf0000000;
-        lon = parseFloat(lon / 600000);
+        const lon = this.getLon(164);
+        const lat = this.getLat(192);
 
-        let lat = this.getInt(192, 27);
-        if (lat & 0x04000000) lat |= 0xf8000000;
-        lat = parseFloat(lat / 600000);
-
-        if ((lon <= 180.) && (lat <= 90.)) {
+        if (lon <= 180 && lat <= 90) {
             this.lon = lon;
             this.lat = lat;
             this.valid = true;
@@ -425,14 +396,14 @@ export default class AisDecode {
         this.offpos = this.getInt(259, 1);
         this.virtual = this.getInt(269, 1);
 
-        const len = parseInt(((this.bitarray.length - 272 / 6) / 6) * 6) * 6;
+        const len = Math.floor(((this.bitarray.length - 272 / 6) / 6) * 6) * 6;
         this.txt = this.getStr(272, len).trim();
     }
 
     _decodeTextMessage() {
         this.class = '-';
         if (this.bitarray.length > 40 / 6) {
-            const len = parseInt(((this.bitarray.length - 40 / 6) / 6) * 6) * 6;
+            const len = Math.floor(((this.bitarray.length - 40 / 6) / 6) * 6) * 6;
             this.txt = this.getStr(40, len).trim();
             this.valid = true;
         }
@@ -442,13 +413,10 @@ export default class AisDecode {
         this.class = '-';
         this.navstatus = this.getInt(40, 4);
 
-        let lon = this.getInt(44, 18);
-        lon = parseFloat(lon) / 600;
+        const lon = this.getInt(44, 18) / 600;
+        const lat = this.getInt(62, 17) / 600;
 
-        let lat = this.getInt(62, 17);
-        lat = parseFloat(lat) / 600;
-
-        if ((lon <= 180.) && (lat <= 90.)) {
+        if (lon <= 180 && lat <= 90) {
             this.lon = lon;
             this.lat = lat;
             this.valid = true;
@@ -480,6 +448,18 @@ export default class AisDecode {
         return (checksum === hex);
     }
 
+    getLon(start) {
+        let lon = this.getInt(start, 28);
+        if (lon & 0x08000000) lon |= 0xf0000000;
+        return lon / 600000;
+    }
+
+    getLat(start) {
+        let lat = this.getInt(start, 27);
+        if (lat & 0x04000000) lat |= 0xf8000000;
+        return lat / 600000;
+    }
+
     // Extract an integer sign or unsigned from payload
     getInt(start, len, signed) {
         let acc = 0;
@@ -487,7 +467,7 @@ export default class AisDecode {
 
         for (let i = 0; i < len; i++) {
             acc = acc << 1;
-            cp = parseInt((start + i) / 6);
+            cp = Math.floor((start + i) / 6);
             cx = this.bitarray[cp];
             cs = 5 - ((start + i) % 6);
             c0 = (cx >> cs) & 1;
@@ -506,7 +486,7 @@ export default class AisDecode {
 
     // Extract a boolean (single bit) from payload
     getBool(start) {
-        const cp = parseInt(start / 6);
+        const cp = Math.floor(start / 6);
         const cs = 5 - (start % 6);
         return ((this.bitarray[cp] >> cs) & 1) === 1;
     }
@@ -517,7 +497,7 @@ export default class AisDecode {
         // extended message are not supported
         if (this.bitarray.length < (start + len) / 6) {
             //console.log ('AisDecode: ext msg not implemented getStr(%d,%d)', start, len);
-            len = parseInt(((this.bitarray.length - start / 6) / 6) * 6) * 6;
+            len = Math.floor(((this.bitarray.length - start / 6) / 6) * 6) * 6;
         }
         // messages in the wild sometimes produce a negative len which will cause a buffer range error
         // exception, stating size argument must not be negative. This occurs in the new Buffer() below.
@@ -535,7 +515,7 @@ export default class AisDecode {
             acc = 0;
             for (let j = 0; j < 6; j++) {
                 acc = acc << 1;
-                cp = parseInt((start + i) / 6);
+                cp = Math.floor((start + i) / 6);
                 cx = this.bitarray[cp];
                 cs = 5 - ((start + i) % 6);
                 c0 = (cx >> (5 - ((start + i) % 6))) & 1;
@@ -552,11 +532,11 @@ export default class AisDecode {
     }
 
     getNavStatus() {
-        return (NAV_STATUS [this.navstatus]);
+        return NAV_STATUS[this.navstatus];
     }
 
     getAisType() {
-        return (MSG_TYPE [this.aistype]);
+        return MSG_TYPE[this.aistype];
     }
 
     getVesselType() {
