@@ -30,7 +30,7 @@ export default class AisDecode {
     }
 
     _getMessageParts(input) {
-        if (Object.prototype.toString.call(input) !== '[object String]') {
+        if (typeof input !== 'string') {
             this.error = 'AisDecode: Sentence is not of type string.';
             return undefined;
         }
@@ -42,7 +42,7 @@ export default class AisDecode {
             return undefined;
         }
 
-        if (!this.validateChecksum(input)) {
+        if (!this._validateChecksum(input)) {
             this.error = 'AisDecode: Sentence checksum is invalid.';
             return undefined;
         }
@@ -65,53 +65,64 @@ export default class AisDecode {
     }
     
     _parseMessage(parts, session) {
-        const formatter = parts[0];
-        const fragment_count = Number(parts[1]);
-        const fragment_id = Number(parts[2]);
-        const sequence_id = parts[3].length > 0 ? Number(parts[3]) : NaN;
+        const totalFragments = Number(parts[1]);
 
-        if (fragment_count > 1) {
-            if (Object.prototype.toString.call(session) !== '[object Object]') {
-                throw 'A session object is required to maintain state for decoding multi-fragment AIS messages.';
-            }
+        if (totalFragments === 0) {
+            this.error = 'AisDecode: Invalid fragment count.';
+            return false;
+        }
+        
+        if (totalFragments === 1) {
+            this._extractPayload(parts);
+            return true;
+        }
 
-            if (fragment_id > 1) {
-                const error = this._validateFragment(formatter, fragment_id, sequence_id, session);
-                if (error) {
-                    this.error = error;
-                    return false;
-                }
-            } else {
-                session.formatter = parts[0];
-                session.fragment_count = fragment_count;
-                session.sequence_id = sequence_id;
-            }
+        // parse multi-fragment message
+        const messageType = parts[0];
+        const currentFragment = Number(parts[2]);
+        const sequenceId = parts[3].length > 0 ? Number(parts[3]) : NaN;
+
+        const error = this._validateFragment(session, messageType, currentFragment, sequenceId);
+        if (error) {
+            this.error = error;
+            return false;
+        }
+
+        if (currentFragment === 1) {
+            session.messageType = messageType;
+            session.fragmentCount = totalFragments;
+            session.sequenceId = sequenceId;
         }
 
         this._extractPayload(parts);
-        if (fragment_count <= 1) return true;
+        session[currentFragment] = {payload: this.payload, length: this.msglen};
 
-        session[fragment_id] = {payload: this.payload, length: this.msglen};
-        if (fragment_id < fragment_count) return false;  // not done building the session
+        if (currentFragment < totalFragments) return false;
 
         this._combinePayloads(session);
         return true;
     }
 
-    _validateFragment(formatter, fragment_id, sequence_id, session) {
-        if (formatter !== session.formatter) {
-            return 'AisDecode: Sentence does not match formatter of current session.';
+    _validateFragment(session, messageType, currentFragment, sequenceId) {
+        if (!session) {
+            return 'AisDecode: A session object is required to maintain state for decoding multi-fragment AIS messages.';
         }
 
-        if (session[fragment_id - 1] === undefined) {
+        if (currentFragment <= 1) return null;
+
+        if (messageType !== session.messageType) {
+            return 'AisDecode: Sentence does not match messageType of current session.';
+        }
+
+        if (session[currentFragment - 1] === undefined) {
             return 'AisDecode: Session is missing prior fragment, cannot parse partial AIS message.';
         }
 
-        if (session.sequence_id !== sequence_id) {
+        if (session.sequenceId !== sequenceId) {
             return 'AisDecode: Session IDs do not match. Cannot reconstruct AIS message.';
         }
 
-        return undefined;
+        return null;
     }
 
     _extractPayload(parts) {
@@ -124,7 +135,7 @@ export default class AisDecode {
         const payloads = [];
         let len = 0;
 
-        for (let i = 1; i <= session.fragment_count; ++i) {
+        for (let i = 1; i <= session.fragmentCount; ++i) {
             payloads.push(session[i].payload);
             len += session[i].length;
         }
@@ -462,26 +473,26 @@ export default class AisDecode {
         this.cog = this.GetInt(85, 9);
     }
 
-    validateChecksum(input) {
-        if (typeof input === 'string') {
-            const loc1 = input.indexOf('!');
-            const loc2 = input.indexOf('*');
+    _validateChecksum(input) {
+        if (typeof input !== 'string') return false;
 
-            if (loc1 === 0 && loc2 > 0) {
-                const body = input.substring(1, loc2);
-                const checksum = input.substring(loc2 + 1);
+        const loc1 = input.indexOf('!');
+        const loc2 = input.indexOf('*');
 
-                let sum = 0;
-                for (let i = 0; i < body.length; i++) {
-                    sum ^= body.charCodeAt(i);  //xor based checksum
-                }
-                let hex = sum.toString(16).toUpperCase();
-                if (hex.length === 1) hex = '0' + hex;      //single digit hex needs preceding 0, '0F'
+        if (loc1 !== 0 || loc2 <= 0) return false;
 
-                return (checksum === hex);
-            }
+        const body = input.substring(1, loc2);
+        const checksum = input.substring(loc2 + 1);
+
+        let sum = 0;
+        for (let i = 0; i < body.length; i++) {
+            sum ^= body.charCodeAt(i);  // xor based checksum
         }
-        return false;
+
+        let hex = sum.toString(16).toUpperCase();
+        if (hex.length === 1) hex = '0' + hex;  // single digit hex needs preceding 0, '0F'
+
+        return (checksum === hex);
     }
 
     // Extract an integer sign or unsigned from payload
