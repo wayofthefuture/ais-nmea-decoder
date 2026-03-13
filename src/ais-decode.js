@@ -65,42 +65,42 @@ export default class AisDecode {
     }
     
     _parseMessage(parts, session) {
-        const message_count = Number(parts[1]);
-        const message_id = Number(parts[2]);
+        const fragment_count = Number(parts[1]);
+        const fragment_id = Number(parts[2]);
         const sequence_id = parts[3].length > 0 ? Number(parts[3]) : NaN;
 
-        if (message_count > 1) {
+        if (fragment_count > 1) {
             if (Object.prototype.toString.call(session) !== '[object Object]') {
-                throw 'A session object is required to maintain state for decoding multipart AIS messages.';
+                throw 'A session object is required to maintain state for decoding multi-fragment AIS messages.';
             }
 
-            if (message_id > 1) {
+            if (fragment_id > 1) {
                 if (parts[0] !== session.formatter) {
                     this.error = 'AisDecode: Sentence does not match formatter of current session.';
                     return false;
                 }
 
-                if (session[message_id - 1] === undefined) {
-                    this.error = 'AisDecode: Session is missing prior message part, cannot parse partial AIS message.';
+                if (session[fragment_id - 1] === undefined) {
+                    this.error = 'AisDecode: Session is missing prior fragment, cannot parse partial AIS message.';
                     return false;
                 }
 
                 if (session.sequence_id !== sequence_id) {
-                    this.error = 'AisDecode: Session IDs do not match. Cannot recontruct AIS message.';
+                    this.error = 'AisDecode: Session IDs do not match. Cannot reconstruct AIS message.';
                     return false;
                 }
             } else {
                 session.formatter = parts[0];
-                session.message_count = message_count;
+                session.fragment_count = fragment_count;
                 session.sequence_id = sequence_id;
             }
         }
 
         this._extractPayload(parts);
-        if (message_count <= 1) return true;
+        if (fragment_count <= 1) return true;
 
-        session[message_id] = {payload: this.payload, length: this.msglen};
-        if (message_id < message_count) return false;  // not done building the session
+        session[fragment_id] = {payload: this.payload, length: this.msglen};
+        if (fragment_id < fragment_count) return false;  // not done building the session
 
         this._combinePayloads(session);
         return true;
@@ -116,7 +116,7 @@ export default class AisDecode {
         const payloads = [];
         let len = 0;
 
-        for (let i = 1; i <= session.message_count; ++i) {
+        for (let i = 1; i <= session.fragment_count; ++i) {
             payloads.push(session[i].payload);
             len += session[i].length;
         }
