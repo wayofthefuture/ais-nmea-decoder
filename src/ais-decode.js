@@ -23,8 +23,8 @@ export default class AisDecode {
         const parts = this._getMessageParts(input);
         if (!parts) return;
         
-        const success = this._parseMessage(parts, session);
-        if (!success) return;
+        const ready = this._parseMessage(parts, session);
+        if (!ready) return;
 
         this._decodeBitArray();
         this._decodeMessageType(input);
@@ -71,6 +71,7 @@ export default class AisDecode {
         return parts;
     }
     
+    // Parse message fragments into a session object and return true when all fragments have been received
     _parseMessage(parts, session) {
         const totalFragments = Number(parts[1]);
         const channel = parts[4];
@@ -94,14 +95,18 @@ export default class AisDecode {
             return false;
         }
 
+        session[currentFragment] = {rawPayload};
+
+        // store metadata once so that subsequent fragments can be validated by checking for the same metadata
         if (currentFragment === 1) {
             session.messageType = messageType;
-            session.fragmentCount = totalFragments;
+            session.totalFragments = totalFragments;
             session.sequenceId = sequenceId;
         }
-
-        session[currentFragment] = {rawPayload};
-        if (currentFragment < totalFragments) return false;
+        
+        if (currentFragment < totalFragments) {
+            return false;
+        }
 
         this._combinePayloads(session);
         return true;
@@ -132,7 +137,7 @@ export default class AisDecode {
     _combinePayloads(session) {
         const payloads = [];
 
-        for (let i = 1; i <= session.fragmentCount; ++i) {
+        for (let i = 1; i <= session.totalFragments; ++i) {
             payloads.push(session[i].rawPayload);
         }
 
