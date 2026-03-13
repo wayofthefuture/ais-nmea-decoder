@@ -3,8 +3,11 @@
   "version": "0.0.1-alpha.1",
   "description": "Decode AIS and NMEA messages",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest",
+    "cov": "vitest run --coverage && open coverage/index.html",
+    "coverage": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -22,5 +25,9 @@
   "bugs": {
     "url": "https://github.com/wayofthefuture/ais-nmea-decoder/issues"
   },
-  "homepage": "https://github.com/wayofthefuture/ais-nmea-decoder#readme"
+  "homepage": "https://github.com/wayofthefuture/ais-nmea-decoder#readme",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.4",
+    "vitest": "^3.2.4"
+  }
 }

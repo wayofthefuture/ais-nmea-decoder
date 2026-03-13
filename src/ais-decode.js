@@ -8,7 +8,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 
 'use strict';
 
-import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from'./constants';
+import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from'./constants.js';
 
 const DEBUG = false;
 
@@ -420,6 +420,7 @@ export default class AisDecode {
 
         this.utc = this.getInt(253, 6);
         this.offpos = this.getInt(259, 1);
+        this.virtual = this.getInt(269, 1);
 
         const len = parseInt(((this.bitarray.length - 272 / 6) / 6) * 6) * 6;
         this.txt = this.getStr(272, len).trim();
