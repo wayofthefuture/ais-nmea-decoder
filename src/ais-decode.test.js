@@ -41,6 +41,18 @@ const testCases = {
         lon: 122.47338666666667,
         lat: 36.91968
     },
+    msg18_true: { // standard class B Position report - dsc=true
+        raw: '!AIVDM,1,1,,A,B69>7mh0?B<:>05B0`0e8TN100000,0*73',
+        aistype: 18,
+        mmsi: '412321751',
+        cog: 72.2,
+        sog: 6.1,
+        dsc: true,
+        repeat: false,
+        accuracy: 0,
+        lon: 122.47338666666667,
+        lat: 36.91968
+    },
     msg19: { // Extended class B Position report
         raw: ['!AIVDM,2,1,9,B,C43NbT0008VGWDVHNs0000N10PHb`NL00000,0*6D', '!AIVDM,2,2,9,B,00000000N0`90RPP,0*59'],
         aistype: 19,
