@@ -8,7 +8,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 
 'use strict';
 
-import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_SHIPTYPE_MAP} from'./constants';
+import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from'./constants';
 
 const DEBUG = false;
 
@@ -141,10 +141,10 @@ export default class AisDecode {
             this.bitarray[i]=byte;
         }
 
-        this.aistype   = this.GetInt (0,6);
-        this.repeat    = this.GetInt (6,2);
-        this.immsi     = this.GetInt (8,30);
-        this.mmsi      = ('000000000' + this.immsi).slice(-9);
+        this.aistype = this.GetInt(0,6);
+        this.repeat  = this.GetInt(6,2);
+        this.immsi   = this.GetInt(8,30);
+        this.mmsi    = ('000000000' + this.immsi).slice(-9);
     }
 
     _decodeMessageType(input) {
@@ -187,7 +187,7 @@ export default class AisDecode {
                 break;
             default:
                 if (DEBUG) {
-                    console.log('---- type=%d %s %s -> %s', this.aistype, this.Getaistype(this.aistype), this.mmsi, input);
+                    console.log('---- type=%d %s %s -> %s', this.aistype, this.getAisType(this.aistype), this.mmsi, input);
                 }
                 break;
         }
@@ -265,15 +265,15 @@ export default class AisDecode {
         this.hdg = parseFloat(this.GetInt(124, 9));
         this.utc = this.GetInt(133, 6);
 
-        this.shipname = this.GetStr(143,120).trim();
-        this.cargo    = this.GetInt(263,8);
+        this.name = this.GetStr(143,120).trim();
+        this.type = this.GetInt(263,8);
 
         this.dimA = this.GetInt(271, 9);
         this.dimB = this.GetInt(280, 9);
         this.dimC = this.GetInt(289, 6);
         this.dimD = this.GetInt(295, 6);
-        this.length = this.dimA + this.dimB;
-        this.width = this.dimC + this.dimD;
+        this.len  = this.dimA + this.dimB;
+        this.wid  = this.dimC + this.dimD;
     }
 
     _decodeStaticVoyageData() {
@@ -285,23 +285,23 @@ export default class AisDecode {
         // 3 = station compliant with future editions
         const AIS_version_indicator = this.GetInt(38,2);
         if (AIS_version_indicator < 3) {
-            this.imo         = this.GetInt(40,30);
-            this.callsign    = this.GetStr(70,42).trim();
-            this.shipname    = this.GetStr(112,120).trim();
-            this.cargo       = this.GetInt(232,8);
-            this.dimA        = this.GetInt(240,9);
-            this.dimB        = this.GetInt(249,9);
-            this.dimC        = this.GetInt(258,6);
-            this.dimD        = this.GetInt(264,6);
-            this.etaMo       = this.GetInt(274,4);
-            this.etaDay      = this.GetInt(278,5);
-            this.etaHr       = this.GetInt(283,5);
-            this.etaMin      = this.GetInt(288,6);
-            this.draught     = this.GetInt(294, 8 ) / 10.0;
-            this.destination = this.GetStr(302, 120).trim();
-            this.length      = this.dimA + this.dimB;
-            this.width       = this.dimC + this.dimD;
-            this.valid       = true;
+            this.imo    = this.GetInt(40,30);
+            this.sign   = this.GetStr(70,42).trim();
+            this.name   = this.GetStr(112,120).trim();
+            this.type   = this.GetInt(232,8);
+            this.dimA   = this.GetInt(240,9);
+            this.dimB   = this.GetInt(249,9);
+            this.dimC   = this.GetInt(258,6);
+            this.dimD   = this.GetInt(264,6);
+            this.etaMo  = this.GetInt(274,4);
+            this.etaDay = this.GetInt(278,5);
+            this.etaHr  = this.GetInt(283,5);
+            this.etaMin = this.GetInt(288,6);
+            this.draft  = this.GetInt(294, 8 ) / 10.0;
+            this.dest   = this.GetStr(302, 120).trim();
+            this.len    = this.dimA + this.dimB;
+            this.wid    = this.dimC + this.dimD;
+            this.valid  = true;
         }
     }
 
@@ -309,11 +309,11 @@ export default class AisDecode {
         this.class = 'B';
         this.part = this.GetInt(38, 2);
         if (0 === this.part) {
-            this.shipname = this.GetStr(40, 120).trim();
+            this.name = this.GetStr(40, 120).trim();
             this.valid = true;
         } else if (this.part === 1) {
-            this.cargo    = this.GetInt(40, 8);
-            this.callsign = this.GetStr(90, 42).trim();
+            this.type = this.GetInt(40, 8);
+            this.sign = this.GetStr(90, 42).trim();
 
             // 98 = auxiliary craft
             if (parseInt(this.immsi / 10000000) === 98) {
@@ -324,8 +324,8 @@ export default class AisDecode {
                 this.dimB = this.GetInt(141, 9);
                 this.dimC = this.GetInt(150, 6);
                 this.dimD = this.GetInt(156, 6);
-                this.length = this.dimA + this.dimB;
-                this.width = this.dimC + this.dimD;
+                this.len  = this.dimA + this.dimB;
+                this.wid  = this.dimC + this.dimD;
             }
             this.valid = true;
         }
@@ -375,8 +375,8 @@ export default class AisDecode {
     _decodeAidToNavigation() {
         this.class = '-';
 
-        this.aidtype = this.GetInt(38, 5);
-        this.shipname = this.GetStr(43, 120).trim();
+        this.type = this.GetInt(38, 5);
+        this.name = this.GetStr(43, 120).trim();
 
         let lon = this.GetInt(164, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
@@ -392,12 +392,12 @@ export default class AisDecode {
             this.valid = true;
         } else this.valid = false;
 
-        this.dimA   = this.GetInt(219, 9);
-        this.dimB   = this.GetInt(228, 9);
-        this.dimC   = this.GetInt(237, 6);
-        this.dimD   = this.GetInt(243, 6);
-        this.length = this.dimA + this.dimB;
-        this.width  = this.dimC + this.dimD;
+        this.dimA = this.GetInt(219, 9);
+        this.dimB = this.GetInt(228, 9);
+        this.dimC = this.GetInt(237, 6);
+        this.dimD = this.GetInt(243, 6);
+        this.len  = this.dimA + this.dimB;
+        this.wid  = this.dimC + this.dimD;
 
         this.utc = this.GetInt(253, 6);
         this.offpos = this.GetInt(259, 1);
@@ -420,13 +420,13 @@ export default class AisDecode {
         this.fid = this.GetInt(50, 6);
         // Inland ship static and voyage related data
         if (this.dac === 200 && this.fid === 10) {
-            this.class       = '-';
-            this.ENI         = this.GetStr(56,48).trim();
-            this.length      = parseFloat(this.GetInt(104, 13)) / 10.;
-            this.width       = parseFloat(this.GetInt(117, 10)) / 10.;
-            this.draught     = parseFloat(this.GetInt(144, 11)) / 100.0;
-            this.shiptypeERI = this.GetInt(127, 14);
-            this.valid       = true;
+            this.class = '-';
+            this.eni   = this.GetStr(56,48).trim();
+            this.len   = parseFloat(this.GetInt(104, 13)) / 10.;
+            this.wid   = parseFloat(this.GetInt(117, 10)) / 10.;
+            this.eri   = this.GetInt(127, 14);
+            this.draft = parseFloat(this.GetInt(144, 11)) / 100.0;
+            this.valid = true;
         } else {
             if (DEBUG) {
                 console.log('---- type=%d %s dac=%d fid=%d %s', this.aistype, this.mmsi, this.dac, this.fid, input);
@@ -540,20 +540,20 @@ export default class AisDecode {
         return (buffer.toString('utf8', 0, k));
     }
 
-    GetNavStatus() {
+    getNavStatus() {
         return (NAV_STATUS [this.navstatus]);
     }
 
-    Getaistype() {
+    getAisType() {
         return (MSG_TYPE [this.aistype]);
     }
 
-    GetVesselType() {
-        return (VESSEL_TYPE [this.cargo]);
+    getVesselType() {
+        return VESSEL_TYPE[this.type];
     }
 
     // map ERI Classification to other vessel types
-    GetERIShiptype(shiptypeERI) {
-        return ERI_SHIPTYPE_MAP[shiptypeERI] ?? shiptypeERI;
+    getEriType(eri) {
+        return ERI_TYPE[eri] ?? eri;
     }
 }

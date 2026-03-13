@@ -34,7 +34,7 @@ export const NAV_STATUS = {
     1: 'At anchor',
     2: 'Not under command',
     3: 'Restricted manoeuverability',
-    4: 'Constrained by her draught',
+    4: 'Constrained by draft',
     5: 'Moored',
     6: 'Aground',
     7: 'Engaged in Fishing',
@@ -133,7 +133,7 @@ export const VESSEL_TYPE = {
     99: 'Other Type, no additional information'
 };
 
-export const ERI_SHIPTYPE_MAP = {
+export const ERI_TYPE = {
     8000: 99, // Vessel, type unknown
     8010: 79, // Motor freighter
     8020: 89, // Motor tanker
