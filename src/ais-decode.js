@@ -65,6 +65,7 @@ export default class AisDecode {
     }
     
     _parseMessage(parts, session) {
+        const formatter = parts[0];
         const fragment_count = Number(parts[1]);
         const fragment_id = Number(parts[2]);
         const sequence_id = parts[3].length > 0 ? Number(parts[3]) : NaN;
@@ -75,18 +76,9 @@ export default class AisDecode {
             }
 
             if (fragment_id > 1) {
-                if (parts[0] !== session.formatter) {
-                    this.error = 'AisDecode: Sentence does not match formatter of current session.';
-                    return false;
-                }
-
-                if (session[fragment_id - 1] === undefined) {
-                    this.error = 'AisDecode: Session is missing prior fragment, cannot parse partial AIS message.';
-                    return false;
-                }
-
-                if (session.sequence_id !== sequence_id) {
-                    this.error = 'AisDecode: Session IDs do not match. Cannot reconstruct AIS message.';
+                const error = this._validateFragment(formatter, fragment_id, sequence_id, session);
+                if (error) {
+                    this.error = error;
                     return false;
                 }
             } else {
@@ -104,6 +96,22 @@ export default class AisDecode {
 
         this._combinePayloads(session);
         return true;
+    }
+
+    _validateFragment(formatter, fragment_id, sequence_id, session) {
+        if (formatter !== session.formatter) {
+            return 'AisDecode: Sentence does not match formatter of current session.';
+        }
+
+        if (session[fragment_id - 1] === undefined) {
+            return 'AisDecode: Session is missing prior fragment, cannot parse partial AIS message.';
+        }
+
+        if (session.sequence_id !== sequence_id) {
+            return 'AisDecode: Session IDs do not match. Cannot reconstruct AIS message.';
+        }
+
+        return undefined;
     }
 
     _extractPayload(parts) {
