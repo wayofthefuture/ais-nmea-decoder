@@ -19,45 +19,55 @@ export default class AisDecode {
         this.valid = false;
         this.error = '';
 
-        const success = this._parseInput(input, session);
+        const parts = this._getMessageParts(input);
+        if (!parts) return;
+        
+        const success = this._parseMessage(parts, session);
         if (!success) return;
 
-        this._decodeBitarray();
+        this._decodeBitArray();
         this._decodeMessageType(input);
     }
 
-    _parseInput(input, session) {
+    _getMessageParts(input) {
         if (Object.prototype.toString.call(input) !== '[object String]') {
             this.error = 'AisDecode: Sentence is not of type string.';
-            return false;
-        } else {
-            input = input.trim();
+            return undefined;
         }
+
+        input = input.trim();
 
         if (input.length === 0) {
             this.error = 'AisDecode: Sentence is empty or spaces.';
-            return false;
-        } else if (!this.validateChecksum(input)) {
+            return undefined;
+        }
+
+        if (!this.validateChecksum(input)) {
             this.error = 'AisDecode: Sentence checksum is invalid.';
-            return false;
+            return undefined;
         }
 
         // split nmea message !AIVDM,1,1,,B,B69>7mh0?J<:>05B0`0e;wq2PHI8,0*3D'
-        const nmea = input.split(',');
+        const parts = input.split(',');
 
-        if (nmea.length !== 7) {
+        if (parts.length !== 7) {
             this.error = 'AisDecode: Sentence contains invalid number of parts.';
-            return false;
-        } else if (nmea[0] !== '!AIVDM' && nmea[0] !== '!AIVDO') {   //AIVDM = standard, AIVDO = own ship
-            this.error = 'AisDecode: Invalid message prefix.';
-            return false;
+            return undefined;
         }
 
-        // the input string is part of a multipart message, make sure we were
-        // passed a session object.
-        const message_count = Number(nmea[1]);
-        const message_id = Number(nmea[2]);
-        const sequence_id = nmea[3].length > 0 ? Number(nmea[3]) : NaN;
+        // AIVDM = standard ais message, AIVDO = own vessel through pilot plug
+        if (parts[0] !== '!AIVDM' && parts[0] !== '!AIVDO') {
+            this.error = 'AisDecode: Invalid message prefix.';
+            return undefined;
+        }
+
+        return parts;
+    }
+    
+    _parseMessage(parts, session) {
+        const message_count = Number(parts[1]);
+        const message_id = Number(parts[2]);
+        const sequence_id = parts[3].length > 0 ? Number(parts[3]) : NaN;
 
         if (message_count > 1) {
             if (Object.prototype.toString.call(session) !== '[object Object]') {
@@ -65,7 +75,7 @@ export default class AisDecode {
             }
 
             if (message_id > 1) {
-                if (nmea[0] !== session.formatter) {
+                if (parts[0] !== session.formatter) {
                     this.error = 'AisDecode: Sentence does not match formatter of current session.';
                     return false;
                 }
@@ -80,40 +90,42 @@ export default class AisDecode {
                     return false;
                 }
             } else {
-                session.formatter = nmea[0];
+                session.formatter = parts[0];
                 session.message_count = message_count;
                 session.sequence_id = sequence_id;
             }
         }
 
-        // extract binary payload and other usefull information from nmea paquet
-        this.payload = new Buffer(nmea [5]);
-        this.msglen = this.payload.length;
+        this._extractPayload(parts);
+        if (message_count <= 1) return true;
 
-        this.channel = nmea[4];  // vhf channel A/B
+        session[message_id] = {payload: this.payload, length: this.msglen};
+        if (message_id < message_count) return false;  // not done building the session
 
-        if (message_count > 1) {
-            session[message_id] = {payload: this.payload, length: this.msglen};
-
-            // Not done building the session
-            if (message_id < message_count) return false;
-
-            const payloads = [];
-            let len = 0;
-
-            for (let i = 1; i <= session.message_count; ++i) {
-                payloads.push(session[i].payload);
-                len += session[i].length;
-            }
-
-            this.payload = Buffer.concat(payloads, len);
-            this.msglen = this.payload.length;
-        }
-
+        this._combinePayloads(session);
         return true;
     }
 
-    _decodeBitarray() {
+    _extractPayload(parts) {
+        this.payload = new Buffer(parts[5]);
+        this.msglen = this.payload.length;
+        this.channel = parts[4];
+    }
+
+    _combinePayloads(session) {
+        const payloads = [];
+        let len = 0;
+
+        for (let i = 1; i <= session.message_count; ++i) {
+            payloads.push(session[i].payload);
+            len += session[i].length;
+        }
+
+        this.payload = Buffer.concat(payloads, len);
+        this.msglen = this.payload.length;
+    }
+    
+    _decodeBitArray() {
         // decode printable 6bit AIS/IEC binary format
         for (let i = 0; i < this.msglen; i++) {
             let byte = this.payload[i];
