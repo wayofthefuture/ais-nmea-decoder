@@ -262,276 +262,40 @@ class AisDecode {
         switch (this.aistype) {
             case 1:
             case 2:
-            case 3: { // class A position report
-                this.class      = 'A';
-                this.navstatus  = this.GetInt( 38, 4);
-
-                let lon         = this.GetInt(61, 28);
-                if (lon & 0x08000000 ) lon |= 0xf0000000;
-                lon = parseFloat (lon / 600000);
-
-                let lat = this.GetInt(89, 27);
-                if( lat & 0x04000000 ) lat |= 0xf8000000;
-                lat = parseFloat (lat / 600000);
-
-                if( ( lon <= 180. ) && ( lat <= 90. ) ) {
-                    this.lon = lon;
-                    this.lat = lat;
-                    this.valid = true;
-                } else this.valid = false;
-
-                this.rot = this.GetInt( 42, 8, true )                   // Rate of turn
-                this.sog = this.GetInt(  50, 10) / 10;                  //speed over ground
-                this.cog = this.GetInt( 116, 12) / 10;                  //course over ground
-                this.hdg = parseFloat (this.GetInt( 128,  9));          //magnetic heading
-                this.utc = this.GetInt( 137, 6 );
-                this.smi = this.GetInt( 143, 2 );
-
-
+            case 3:
+                this._decodeClassAPositionReport();
                 break;
-            }
-            case 18: { // class B position report
-                this.class  = 'B';
-                this.status = -1;  // Class B targets have no status.  Enforce this...
-                let lon = this.GetInt(57, 28 );
-                if (lon & 0x08000000 ) lon |= 0xf0000000;
-                lon = parseFloat (lon / 600000);
-
-                let lat = this.GetInt(85, 27 );
-                if( lat & 0x04000000 ) lat |= 0xf8000000;
-                lat = parseFloat (lat / 600000);
-
-                if( ( lon <= 180. ) && ( lat <= 90. ) ) {
-                    this.lon = lon;
-                    this.lat = lat;
-                    this.valid = true;
-                } else this.valid = false;
-
-                this.sog = this.GetInt( 46, 10 ) / 10;                //speed over ground
-                this.cog = this.GetInt( 112, 12) / 10;                //course over ground
-                this.hdg = parseFloat (this.GetInt( 124,  9));        //magnetic heading
-                this.utc = this.GetInt( 134, 6 );
-
+            case 18:
+                this._decodeClassBPositionReport();
                 break;
-            }
-            case 19: { // Extended class B position report
-                this.class  = 'B';
-                this.status = -1;  // Class B targets have no status.  Enforce this...
-
-                let lon = this.GetInt(57, 28 );
-                if (lon & 0x08000000 ) lon |= 0xf0000000;
-                lon = parseFloat (lon / 600000);
-
-                let lat = this.GetInt(85, 27 );
-                if( lat & 0x04000000 ) lat |= 0xf8000000;
-                lat = parseFloat (lat / 600000);
-
-                if( ( lon <= 180. ) && ( lat <= 90. ) ) {
-                    this.lon = lon;
-                    this.lat = lat;
-                    this.valid = true;
-                } else this.valid = false;
-
-                this.sog = this.GetInt( 46, 10 ) / 10;                //speed over ground
-                this.cog = this.GetInt( 112, 12) / 10;                //course over ground
-                this.hdg = parseFloat (this.GetInt( 124,  9));        //magnetic heading
-                this.utc = this.GetInt( 133, 6 );
-
-                this.shipname    = this.GetStr(143,120).trim();
-                this.cargo       = this.GetInt(263,8);
-
-                this.dimA   = this.GetInt(271, 9 );
-                this.dimB   = this.GetInt(280, 9 );
-                this.dimC   = this.GetInt(289, 6 );
-                this.dimD   = this.GetInt(295, 6 );
-                this.length = this.dimA + this.dimB;
-                this.width  = this.dimC + this.dimD;
-
+            case 19:
+                this._decodeExtendedClassBPositionReport();
                 break;
-            }
-            case 5: {
-                this.class  = 'A';
-    //          Get the AIS Version indicator
-    //          0 = station compliant with Recommendation ITU-R M.1371-1
-    //          1 = station compliant with Recommendation ITU-R M.1371-3 (or later)
-    //          2 = station compliant with Recommendation ITU-R M.1371-5 (or later)
-    //          3 = station compliant with future editions
-                const AIS_version_indicator = this.GetInt(38,2);
-                if( AIS_version_indicator < 3 )
-                    {
-                    this.imo = this.GetInt(40,30);
-                    this.callsign    = this.GetStr(70,42).trim();
-                    this.shipname    = this.GetStr(112,120).trim();
-                    this.cargo       = this.GetInt(232,8);
-                    this.dimA        = this.GetInt(240,9);
-                    this.dimB        = this.GetInt(249,9);
-                    this.dimC        = this.GetInt(258,6);
-                    this.dimD        = this.GetInt(264,6);
-                    this.etaMo       = this.GetInt(274,4);
-                    this.etaDay      = this.GetInt(278,5);
-                    this.etaHr       = this.GetInt(283,5);
-                    this.etaMin      = this.GetInt(288,6);
-                    this.draught     = this.GetInt(294, 8 ) / 10.0;
-                    this.destination = this.GetStr(302, 120).trim();
-                    this.length      = this.dimA + this.dimB;
-                    this.width       = this.dimC + this.dimD;
-                    this.valid       = true;
-                }
-
+            case 5:
+                this._decodeStaticVoyageData();
                 break;
-            }
-            case 24: {  // Vesel static information
-                this.class='B';
-                this.part = this.GetInt(38, 2 );
-                if (0 === this.part ) {
-                    this.shipname = this.GetStr(40, 120).trim();
-                    this.valid    = true;
-                } else if ( this.part === 1) {
-                    this.cargo    = this.GetInt(40, 8 );
-                    this.callsign = this.GetStr(90, 42).trim();
-
-                    // 98 = auxiliary craft
-                    if (parseInt(this.immsi/10000000) === 98) {
-                        const mothership  = this.GetInt (132, 30);
-                        this.mothership = ("000000000" + mothership).slice(-9);
-                    } else {
-                        this.dimA   = this.GetInt(132, 9 );
-                        this.dimB   = this.GetInt(141, 9 );
-                        this.dimC   = this.GetInt(150, 6 );
-                        this.dimD   = this.GetInt(156, 6 );
-                        this.length = this.dimA + this.dimB;
-                        this.width  = this.dimC + this.dimD;
-                    }
-                    this.valid  = true;
-                }
+            case 24:
+                this._decodeStaticDataReport();
                 break;
-            }
-            case 4:  // base station
-            case 11: { // UTC/Date Response
-                this.class      = '-';
-
-                let lon = this.GetInt(79, 28);
-                if (lon & 0x08000000 ) lon |= 0xf0000000;
-                lon = parseFloat (lon / 600000);
-
-                let lat = this.GetInt(107, 27);
-                if( lat & 0x04000000 ) lat |= 0xf8000000;
-                lat = parseFloat (lat / 600000);
-
-                if( ( lon <= 180. ) && ( lat <= 90. ) ) {
-                    this.lon = lon;
-                    this.lat = lat;
-                    this.valid = true;
-                } else this.valid = false;
+            case 4:
+            case 11:
+                this._decodeBaseStationReport();
                 break;
-            }
-            case 9: { // sar aircraft
-                this.class      = '-';
-
-                this.alt = this.GetInt(38, 12);
-
-                let lon = this.GetInt(61, 28);
-                if (lon & 0x08000000 ) lon |= 0xf0000000;
-                lon = parseFloat (lon / 600000);
-
-                let lat = this.GetInt(89, 27);
-                if( lat & 0x04000000 ) lat |= 0xf8000000;
-                lat = parseFloat (lat / 600000);
-
-                if( ( lon <= 180. ) && ( lat <= 90. ) ) {
-                    this.lon = lon;
-                    this.lat = lat;
-                    this.valid = true;
-                } else this.valid = false;
-
-                this.sog = parseFloat (this.GetInt( 50, 10 ));  //speed over ground
-                this.cog = this.GetInt( 116, 12) / 10;          //course over ground
-
+            case 9:
+                this._decodeSarAircraftReport();
                 break;
-            }
-            case 21: { // aid to navigation
-                this.class      = '-';
-
-                this.aidtype = this.GetInt(38, 5);
-                this.shipname = this.GetStr(43, 120).trim();
-
-                let lon = this.GetInt(164, 28);
-                if (lon & 0x08000000 ) lon |= 0xf0000000;
-                lon = parseFloat (lon / 600000);
-
-                let lat = this.GetInt(192, 27);
-                if( lat & 0x04000000 ) lat |= 0xf8000000;
-                lat = parseFloat (lat / 600000);
-
-                if( ( lon <= 180. ) && ( lat <= 90. ) ) {
-                    this.lon = lon;
-                    this.lat = lat;
-                    this.valid = true;
-                } else this.valid = false;
-
-                this.dimA   = this.GetInt(219, 9 );
-                this.dimB   = this.GetInt(228, 9 );
-                this.dimC   = this.GetInt(237, 6 );
-                this.dimD   = this.GetInt(243, 6 );
-                this.length = this.dimA + this.dimB;
-                this.width  = this.dimC + this.dimD;
-
-                this.utc = this.GetInt(253, 6);
-                this.offpos = this.GetInt(259, 1);
-
-                const len = parseInt(( ( this.bitarray.length - 272 /6 ) / 6 ) * 6)*6;
-                this.txt = this.GetStr(272 , len).trim();
-
+            case 21:
+                this._decodeAidToNavigation();
                 break;
-            }
-            case 14: { // text msg
-                this.class      = '-';
-                if (this.bitarray.length > 40/6) {
-                    const len = parseInt(( ( this.bitarray.length - 40/6 ) / 6 ) * 6)*6;
-                    this.txt = this.GetStr(40, len).trim();
-                    this.valid = true;
-                }
+            case 14:
+                this._decodeTextMessage();
                 break;
-            }
-            case 8: { // Binary Broadcast Message
-                    this.dac = this.GetInt(40, 10 );
-                    this.fid = this.GetInt(50, 6 );
-                    // Inland ship static and voyage related data
-                    if (this.dac === 200 && this.fid === 10 ) {
-                        this.class       = '-';
-                        this.ENI         = this.GetStr(56,48).trim();
-                        this.length      = parseFloat(this.GetInt(104, 13 )) /10.;
-                        this.width       = parseFloat(this.GetInt(117, 10 )) /10.;
-                        this.draught     = parseFloat(this.GetInt(144, 11 )) / 100.0;
-                        this.shiptypeERI = this.GetInt(127, 14 );
-                        this.valid       = true;
-                    } else {
-                        if (DEBUG) {
-                            console.log ('---- type=%d %s dac=%d fid=%d %s', this.aistype, this.mmsi, this.dac, this.fid, input);
-                        }
-                    }
+            case 8:
+                this._decodeBinaryBroadcastMessage(input);
                 break;
-            }
-            case 27: { // Long Range AIS Broadcast message
-                this.class  = '-';
-                this.navstatus  = this.GetInt( 40, 4);
-
-                let lon = this.GetInt(44, 18 );
-                lon = parseFloat (lon) / 600;
-
-                let lat = this.GetInt(62, 17 );
-                lat = parseFloat (lat) / 600;
-
-                if( ( lon <= 180. ) && ( lat <= 90. ) ) {
-                    this.lon = lon;
-                    this.lat = lat;
-                    this.valid = true;
-                } else this.valid = false;
-
-                this.sog = this.GetInt( 79, 6 ) ;                //speed over ground
-                this.cog = this.GetInt( 85, 9);                //course over ground
+            case 27:
+                this._decodeLongRangeBroadcast();
                 break;
-            }
             default:
                 if (DEBUG) {
                     console.log ('---- type=%d %s %s -> %s', this.aistype, this.Getaistype(this.aistype), this.mmsi, input);
@@ -540,7 +304,268 @@ class AisDecode {
         }
     }
 
-    // Validate message checksum
+    _decodeClassAPositionReport() {
+        this.class      = 'A';
+        this.navstatus  = this.GetInt( 38, 4);
+
+        let lon         = this.GetInt(61, 28);
+        if (lon & 0x08000000 ) lon |= 0xf0000000;
+        lon = parseFloat (lon / 600000);
+
+        let lat = this.GetInt(89, 27);
+        if( lat & 0x04000000 ) lat |= 0xf8000000;
+        lat = parseFloat (lat / 600000);
+
+        if( ( lon <= 180. ) && ( lat <= 90. ) ) {
+            this.lon = lon;
+            this.lat = lat;
+            this.valid = true;
+        } else this.valid = false;
+
+        this.rot = this.GetInt( 42, 8, true )
+        this.sog = this.GetInt(  50, 10) / 10;
+        this.cog = this.GetInt( 116, 12) / 10;
+        this.hdg = parseFloat (this.GetInt( 128,  9));
+        this.utc = this.GetInt( 137, 6 );
+        this.smi = this.GetInt( 143, 2 );
+    }
+
+    _decodeClassBPositionReport() {
+        this.class  = 'B';
+        this.status = -1;  // Class B targets have no status.  Enforce this...
+        let lon = this.GetInt(57, 28 );
+        if (lon & 0x08000000 ) lon |= 0xf0000000;
+        lon = parseFloat (lon / 600000);
+
+        let lat = this.GetInt(85, 27 );
+        if( lat & 0x04000000 ) lat |= 0xf8000000;
+        lat = parseFloat (lat / 600000);
+
+        if( ( lon <= 180. ) && ( lat <= 90. ) ) {
+            this.lon = lon;
+            this.lat = lat;
+            this.valid = true;
+        } else this.valid = false;
+
+        this.sog = this.GetInt( 46, 10 ) / 10;
+        this.cog = this.GetInt( 112, 12) / 10;
+        this.hdg = parseFloat (this.GetInt( 124,  9));
+        this.utc = this.GetInt( 134, 6 );
+    }
+
+    _decodeExtendedClassBPositionReport() {
+        this.class  = 'B';
+        this.status = -1;  // Class B targets have no status.  Enforce this...
+
+        let lon = this.GetInt(57, 28 );
+        if (lon & 0x08000000 ) lon |= 0xf0000000;
+        lon = parseFloat (lon / 600000);
+
+        let lat = this.GetInt(85, 27 );
+        if( lat & 0x04000000 ) lat |= 0xf8000000;
+        lat = parseFloat (lat / 600000);
+
+        if( ( lon <= 180. ) && ( lat <= 90. ) ) {
+            this.lon = lon;
+            this.lat = lat;
+            this.valid = true;
+        } else this.valid = false;
+
+        this.sog = this.GetInt( 46, 10 ) / 10;
+        this.cog = this.GetInt( 112, 12) / 10;
+        this.hdg = parseFloat (this.GetInt( 124,  9));
+        this.utc = this.GetInt( 133, 6 );
+
+        this.shipname    = this.GetStr(143,120).trim();
+        this.cargo       = this.GetInt(263,8);
+
+        this.dimA   = this.GetInt(271, 9 );
+        this.dimB   = this.GetInt(280, 9 );
+        this.dimC   = this.GetInt(289, 6 );
+        this.dimD   = this.GetInt(295, 6 );
+        this.length = this.dimA + this.dimB;
+        this.width  = this.dimC + this.dimD;
+    }
+
+    _decodeStaticVoyageData() {
+        this.class  = 'A';
+        // Get the AIS Version indicator
+        // 0 = station compliant with Recommendation ITU-R M.1371-1
+        // 1 = station compliant with Recommendation ITU-R M.1371-3 (or later)
+        // 2 = station compliant with Recommendation ITU-R M.1371-5 (or later)
+        // 3 = station compliant with future editions
+        const AIS_version_indicator = this.GetInt(38,2);
+        if( AIS_version_indicator < 3 )
+            {
+            this.imo = this.GetInt(40,30);
+            this.callsign    = this.GetStr(70,42).trim();
+            this.shipname    = this.GetStr(112,120).trim();
+            this.cargo       = this.GetInt(232,8);
+            this.dimA        = this.GetInt(240,9);
+            this.dimB        = this.GetInt(249,9);
+            this.dimC        = this.GetInt(258,6);
+            this.dimD        = this.GetInt(264,6);
+            this.etaMo       = this.GetInt(274,4);
+            this.etaDay      = this.GetInt(278,5);
+            this.etaHr       = this.GetInt(283,5);
+            this.etaMin      = this.GetInt(288,6);
+            this.draught     = this.GetInt(294, 8 ) / 10.0;
+            this.destination = this.GetStr(302, 120).trim();
+            this.length      = this.dimA + this.dimB;
+            this.width       = this.dimC + this.dimD;
+            this.valid       = true;
+        }
+    }
+
+    _decodeStaticDataReport() {
+        this.class='B';
+        this.part = this.GetInt(38, 2 );
+        if (0 === this.part ) {
+            this.shipname = this.GetStr(40, 120).trim();
+            this.valid    = true;
+        } else if ( this.part === 1) {
+            this.cargo    = this.GetInt(40, 8 );
+            this.callsign = this.GetStr(90, 42).trim();
+
+            // 98 = auxiliary craft
+            if (parseInt(this.immsi/10000000) === 98) {
+                const mothership  = this.GetInt (132, 30);
+                this.mothership = ("000000000" + mothership).slice(-9);
+            } else {
+                this.dimA   = this.GetInt(132, 9 );
+                this.dimB   = this.GetInt(141, 9 );
+                this.dimC   = this.GetInt(150, 6 );
+                this.dimD   = this.GetInt(156, 6 );
+                this.length = this.dimA + this.dimB;
+                this.width  = this.dimC + this.dimD;
+            }
+            this.valid  = true;
+        }
+    }
+
+    _decodeBaseStationReport() {
+        this.class      = '-';
+
+        let lon = this.GetInt(79, 28);
+        if (lon & 0x08000000 ) lon |= 0xf0000000;
+        lon = parseFloat (lon / 600000);
+
+        let lat = this.GetInt(107, 27);
+        if( lat & 0x04000000 ) lat |= 0xf8000000;
+        lat = parseFloat (lat / 600000);
+
+        if( ( lon <= 180. ) && ( lat <= 90. ) ) {
+            this.lon = lon;
+            this.lat = lat;
+            this.valid = true;
+        } else this.valid = false;
+    }
+
+    _decodeSarAircraftReport() {
+        this.class      = '-';
+
+        this.alt = this.GetInt(38, 12);
+
+        let lon = this.GetInt(61, 28);
+        if (lon & 0x08000000 ) lon |= 0xf0000000;
+        lon = parseFloat (lon / 600000);
+
+        let lat = this.GetInt(89, 27);
+        if( lat & 0x04000000 ) lat |= 0xf8000000;
+        lat = parseFloat (lat / 600000);
+
+        if( ( lon <= 180. ) && ( lat <= 90. ) ) {
+            this.lon = lon;
+            this.lat = lat;
+            this.valid = true;
+        } else this.valid = false;
+
+        this.sog = parseFloat (this.GetInt( 50, 10 ));
+        this.cog = this.GetInt( 116, 12) / 10;
+    }
+
+    _decodeAidToNavigation() {
+        this.class      = '-';
+
+        this.aidtype = this.GetInt(38, 5);
+        this.shipname = this.GetStr(43, 120).trim();
+
+        let lon = this.GetInt(164, 28);
+        if (lon & 0x08000000 ) lon |= 0xf0000000;
+        lon = parseFloat (lon / 600000);
+
+        let lat = this.GetInt(192, 27);
+        if( lat & 0x04000000 ) lat |= 0xf8000000;
+        lat = parseFloat (lat / 600000);
+
+        if( ( lon <= 180. ) && ( lat <= 90. ) ) {
+            this.lon = lon;
+            this.lat = lat;
+            this.valid = true;
+        } else this.valid = false;
+
+        this.dimA   = this.GetInt(219, 9 );
+        this.dimB   = this.GetInt(228, 9 );
+        this.dimC   = this.GetInt(237, 6 );
+        this.dimD   = this.GetInt(243, 6 );
+        this.length = this.dimA + this.dimB;
+        this.width  = this.dimC + this.dimD;
+
+        this.utc = this.GetInt(253, 6);
+        this.offpos = this.GetInt(259, 1);
+
+        const len = parseInt(( ( this.bitarray.length - 272 /6 ) / 6 ) * 6)*6;
+        this.txt = this.GetStr(272 , len).trim();
+    }
+
+    _decodeTextMessage() {
+        this.class      = '-';
+        if (this.bitarray.length > 40/6) {
+            const len = parseInt(( ( this.bitarray.length - 40/6 ) / 6 ) * 6)*6;
+            this.txt = this.GetStr(40, len).trim();
+            this.valid = true;
+        }
+    }
+
+    _decodeBinaryBroadcastMessage(input) {
+        this.dac = this.GetInt(40, 10 );
+        this.fid = this.GetInt(50, 6 );
+        // Inland ship static and voyage related data
+        if (this.dac === 200 && this.fid === 10 ) {
+            this.class       = '-';
+            this.ENI         = this.GetStr(56,48).trim();
+            this.length      = parseFloat(this.GetInt(104, 13 )) /10.;
+            this.width       = parseFloat(this.GetInt(117, 10 )) /10.;
+            this.draught     = parseFloat(this.GetInt(144, 11 )) / 100.0;
+            this.shiptypeERI = this.GetInt(127, 14 );
+            this.valid       = true;
+        } else {
+            if (DEBUG) {
+                console.log ('---- type=%d %s dac=%d fid=%d %s', this.aistype, this.mmsi, this.dac, this.fid, input);
+            }
+        }
+    }
+
+    _decodeLongRangeBroadcast() {
+        this.class  = '-';
+        this.navstatus  = this.GetInt( 40, 4);
+
+        let lon = this.GetInt(44, 18 );
+        lon = parseFloat (lon) / 600;
+
+        let lat = this.GetInt(62, 17 );
+        lat = parseFloat (lat) / 600;
+
+        if( ( lon <= 180. ) && ( lat <= 90. ) ) {
+            this.lon = lon;
+            this.lat = lat;
+            this.valid = true;
+        } else this.valid = false;
+
+        this.sog = this.GetInt( 79, 6 ) ;
+        this.cog = this.GetInt( 85, 9);
+    }
+
     validateChecksum(input) {
         if (typeof input === "string") {
             const loc1 = input.indexOf("!");
