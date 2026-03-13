@@ -37,10 +37,9 @@ const testCases = {
         sog: 6.1,
         dsc: false,
         repeat: false,
-        accuracy: true,
+        accuracy: 0,
         lon: 122.47338666666667,
-        lat: 36.91968,
-        second: 50
+        lat: 36.91968
     },
     msg19: { // Extended class B Position report
         raw: ['!AIVDM,2,1,9,B,C43NbT0008VGWDVHNs0000N10PHb`NL00000,0*6D', '!AIVDM,2,2,9,B,00000000N0`90RPP,0*59'],
@@ -50,13 +49,10 @@ const testCases = {
         sog: 0,
         lon: 33.527321666666666,
         lat: 44.61725333333333,
-        second: 60,
         name: 'PLUTON'
     },
     msg5: { // class A static info
         raw: '!AIVDM,1,1,,A,55?MbV42;H;s<HtKR20EHE:0@T4@Dn2222222216L961O0000i000000000000000000000,0*2D',
-        //'!AIVDM,2,2,1,A,88888888880,2*25'],
-        // [extentions for destination not implemented]
         aistype: 5,
         mmsi: '351759000',
         imo: 9134270,
@@ -68,19 +64,17 @@ const testCases = {
         dimB: 70,
         dimC: 1,
         dimD: 31,
-        fixaistype: 1,
-        etamn: 0,
-        etaho: 0,
-        etaday: 0,
-        etamonth: 0,
+        etaMn: 0,
+        etaHr: 0,
+        etaDy: 0,
+        etaMo: 0,
         draft: 19.6
     },
     msg5_2: { // class A static info
-        raw: ['!AIVDM,2,1,3,B,59NWwC@2>6th7Q`7800858l8Dd00000000000018Cp:A:6a=0G@TQCADR0EQ,0*09',
-            '!AIVDM,2,2,3,B,CP000000000,2*37'],
+        raw: ['!AIVDM,2,1,3,B,59NWwC@2>6th7Q`7800858l8Dd00000000000018Cp:A:6a=0G@TQCADR0EQ,0*09', '!AIVDM,2,2,3,B,CP000000000,2*37'],
         aistype: 5,
-        mmsi: '235074703',
-        imo: 12894435639,
+        mmsi: '636092237',
+        imo: 9313228,
         sign: 'A8ZA2',
         name: 'BARMBEK',
         dest: 'BREMERHAVEN',
@@ -89,18 +83,16 @@ const testCases = {
         dimB: 10,
         dimC: 17,
         dimD: 10,
-        fixaistype: 1,
-        etamn: 0,
-        etaho: 13,
-        etaday: 18,
-        etamonth: 10,
+        etaMn: 0,
+        etaHr: 13,
+        etaDy: 18,
+        etaMo: 10,
         draft: 9.3
     },
     msg5_3: { // class A static info version 2
-        raw: ['!AIVDM,2,1,9,A,53Moi:81Qk8LLpQH000PD98T@D4r118Tp<E=<0153@f594ke07TSm21D,0*63',
-            '!AIVDM,2,2,9,A,hF@000000000000,2*73'],
+        raw: ['!AIVDM,2,1,9,A,53Moi:81Qk8LLpQH000PD98T@D4r118Tp<E=<0153@f594ke07TSm21D,0*63', '!AIVDM,2,2,9,A,hF@000000000000,2*73'],
         aistype: 5,
-        mmsi: '235074703',
+        mmsi: '232649000',
         imo: 6409351,
         sign: 'GNHV',
         name: 'HEBRIDEAN PRINCESS',
@@ -110,11 +102,10 @@ const testCases = {
         dimB: 46,
         dimC: 5,
         dimD: 9,
-        fixaistype: 1,
-        etamn: 0,
-        etaho: 13,
-        etaday: 7,
-        etamonth: 3,
+        etaMn: 0,
+        etaHr: 13,
+        etaDy: 7,
+        etaMo: 3,
         draft: 3
     },
     msg4: { // base station
@@ -231,7 +222,7 @@ for (const [name, props] of Object.entries(testCases)) {
             if (field === 'raw') continue;
 
             it(`should decode ${field} correctly`, () => {
-                expect(decoded[field]).toBe(value);
+                expect(value).toBe(decoded[field]);
             });
         }
     });

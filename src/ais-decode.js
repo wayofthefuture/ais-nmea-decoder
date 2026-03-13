@@ -10,7 +10,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 
 import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from'./constants.js';
 
-const DEBUG = false;
+const enableLogging = false;
 
 
 export default class AisDecode {
@@ -173,38 +173,36 @@ export default class AisDecode {
             case 3:
                 this._decodeClassAPositionReport();
                 break;
+            case 4:
+            case 11:
+                this._decodeBaseStationReport();
+                break;
+            case 5:
+                this._decodeStaticVoyageData();
+                break;
+            case 9:
+                this._decodeSarAircraftReport();
+                break;
+            case 14:
+                this._decodeTextMessage();
+                break;
             case 18:
                 this._decodeClassBPositionReport();
                 break;
             case 19:
                 this._decodeExtendedClassBPositionReport();
                 break;
-            case 5:
-                this._decodeStaticVoyageData();
-                break;
-            case 24:
-                this._decodeStaticDataReport();
-                break;
-            case 4:
-            case 11:
-                this._decodeBaseStationReport();
-                break;
-            case 9:
-                this._decodeSarAircraftReport();
-                break;
             case 21:
                 this._decodeAidToNavigation();
                 break;
-            case 14:
-                this._decodeTextMessage();
+            case 24:
+                this._decodeStaticDataReport();
                 break;
             case 27:
                 this._decodeLongRangeBroadcast();
                 break;
             default:
-                if (DEBUG) {
-                    console.log('---- type=%d %s %s -> %s', this.aistype, this.getAisType(this.aistype), this.mmsi, input);
-                }
+                if (enableLogging) console.log('---- type=%d %s %s -> %s', this.aistype, this.getAisType(this.aistype), this.mmsi, input);
                 break;
         }
     }
@@ -238,6 +236,8 @@ export default class AisDecode {
     _decodeClassBPositionReport() {
         this.class = 'B';
         this.status = -1;  // Class B targets have no status.  Enforce this...
+        this.repeat = this.getBool(6);
+        this.accuracy = this.getInt(56, 1);
 
         let lon = this.getInt(57, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
@@ -257,6 +257,7 @@ export default class AisDecode {
         this.cog = this.getInt(112, 12) / 10;
         this.hdg = parseFloat(this.getInt(124, 9));
         this.utc = this.getInt(134, 6);
+        this.dsc = this.getBool(143);
     }
 
     _decodeExtendedClassBPositionReport() {
@@ -313,9 +314,9 @@ export default class AisDecode {
             this.dimC   = this.getInt(258,6);
             this.dimD   = this.getInt(264,6);
             this.etaMo  = this.getInt(274,4);
-            this.etaDay = this.getInt(278,5);
+            this.etaDy  = this.getInt(278,5);
             this.etaHr  = this.getInt(283,5);
-            this.etaMin = this.getInt(288,6);
+            this.etaMn  = this.getInt(288,6);
             this.draft  = this.getInt(294, 8 ) / 10.0;
             this.dest   = this.getStr(302, 120).trim();
             this.len    = this.dimA + this.dimB;
@@ -501,6 +502,13 @@ export default class AisDecode {
         }
         //console.log ('---- start=%d len=%d acc=%s acc=%d', start, len ,  acc.toString(2), acc);
         return acc;
+    }
+
+    // Extract a boolean (single bit) from payload
+    getBool(start) {
+        const cp = parseInt(start / 6);
+        const cs = 5 - (start % 6);
+        return ((this.bitarray[cp] >> cs) & 1) === 1;
     }
 
     // Extract a string from payload [1st bits is index 0]
