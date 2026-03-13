@@ -35,20 +35,20 @@ const testCases = {
         mmsi: '412321751',
         cog: 72.2,
         sog: 6.1,
+        repeat: 0,
         dsc: false,
-        repeat: false,
         accuracy: 0,
         lon: 122.47338666666667,
         lat: 36.91968
     },
-    msg18_true: { // standard class B Position report - dsc=true
-        raw: '!AIVDM,1,1,,A,B69>7mh0?B<:>05B0`0e8TN100000,0*73',
+    msg18b: { // standard class B Position report - repeat=1,dsc=true
+        raw: '!AIVDM,1,1,,A,BF9>7mh0?B<:>05B0`0e8TN100000,0*03',
         aistype: 18,
         mmsi: '412321751',
         cog: 72.2,
         sog: 6.1,
+        repeat: 1,
         dsc: true,
-        repeat: false,
         accuracy: 0,
         lon: 122.47338666666667,
         lat: 36.91968

@@ -236,7 +236,7 @@ export default class AisDecode {
     _decodeClassBPositionReport() {
         this.class = 'B';
         this.status = -1;  // Class B targets have no status.  Enforce this...
-        this.repeat = this.getBool(6);
+        this.repeat = this.getInt(6,2);
         this.accuracy = this.getInt(56, 1);
 
         let lon = this.getInt(57, 28);
