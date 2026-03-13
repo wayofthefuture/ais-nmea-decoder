@@ -6,12 +6,11 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-// Reference: http://catb.org/gpsd/AIVDM.html
-
 'use strict';
 
 var AisDecode= require ('../ApiExport').AisDecode;
 var fs       = require('fs');
+
 
 function AisDecodeTest (args) {
 

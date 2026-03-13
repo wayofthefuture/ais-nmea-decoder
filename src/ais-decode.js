@@ -6,8 +6,6 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-// Reference: http://catb.org/gpsd/AIVDM.html
-
 'use strict';
 
 import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_SHIPTYPE_MAP} from'./constants';
