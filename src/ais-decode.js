@@ -160,9 +160,9 @@ export default class AisDecode {
             this.bitarray[i]=byte;
         }
 
-        this.aistype = this.GetInt(0,6);
-        this.repeat  = this.GetInt(6,2);
-        this.immsi   = this.GetInt(8,30);
+        this.aistype = this.getInt(0,6);
+        this.repeat  = this.getInt(6,2);
+        this.immsi   = this.getInt(8,30);
         this.mmsi    = ('000000000' + this.immsi).slice(-9);
     }
 
@@ -214,13 +214,13 @@ export default class AisDecode {
 
     _decodeClassAPositionReport() {
         this.class = 'A';
-        this.navstatus = this.GetInt(38, 4);
+        this.navstatus = this.getInt(38, 4);
 
-        let lon = this.GetInt(61, 28);
+        let lon = this.getInt(61, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
         lon = parseFloat(lon / 600000);
 
-        let lat = this.GetInt(89, 27);
+        let lat = this.getInt(89, 27);
         if (lat & 0x04000000) lat |= 0xf8000000;
         lat = parseFloat(lat / 600000);
 
@@ -230,22 +230,22 @@ export default class AisDecode {
             this.valid = true;
         } else this.valid = false;
 
-        this.rot = this.GetInt(42, 8, true)
-        this.sog = this.GetInt(50, 10) / 10;
-        this.cog = this.GetInt(116, 12) / 10;
-        this.hdg = parseFloat(this.GetInt(128, 9));
-        this.utc = this.GetInt(137, 6);
-        this.smi = this.GetInt(143, 2);
+        this.rot = this.getInt(42, 8, true)
+        this.sog = this.getInt(50, 10) / 10;
+        this.cog = this.getInt(116, 12) / 10;
+        this.hdg = parseFloat(this.getInt(128, 9));
+        this.utc = this.getInt(137, 6);
+        this.smi = this.getInt(143, 2);
     }
 
     _decodeClassBPositionReport() {
         this.class = 'B';
         this.status = -1;  // Class B targets have no status.  Enforce this...
-        let lon = this.GetInt(57, 28);
+        let lon = this.getInt(57, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
         lon = parseFloat(lon / 600000);
 
-        let lat = this.GetInt(85, 27);
+        let lat = this.getInt(85, 27);
         if (lat & 0x04000000) lat |= 0xf8000000;
         lat = parseFloat(lat / 600000);
 
@@ -255,21 +255,21 @@ export default class AisDecode {
             this.valid = true;
         } else this.valid = false;
 
-        this.sog = this.GetInt(46, 10) / 10;
-        this.cog = this.GetInt(112, 12) / 10;
-        this.hdg = parseFloat(this.GetInt(124, 9));
-        this.utc = this.GetInt(134, 6);
+        this.sog = this.getInt(46, 10) / 10;
+        this.cog = this.getInt(112, 12) / 10;
+        this.hdg = parseFloat(this.getInt(124, 9));
+        this.utc = this.getInt(134, 6);
     }
 
     _decodeExtendedClassBPositionReport() {
         this.class = 'B';
         this.status = -1;  // Class B targets have no status.  Enforce this...
 
-        let lon = this.GetInt(57, 28);
+        let lon = this.getInt(57, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
         lon = parseFloat(lon / 600000);
 
-        let lat = this.GetInt(85, 27);
+        let lat = this.getInt(85, 27);
         if (lat & 0x04000000) lat |= 0xf8000000;
         lat = parseFloat(lat / 600000);
 
@@ -279,18 +279,18 @@ export default class AisDecode {
             this.valid = true;
         } else this.valid = false;
 
-        this.sog = this.GetInt(46, 10) / 10;
-        this.cog = this.GetInt(112, 12) / 10;
-        this.hdg = parseFloat(this.GetInt(124, 9));
-        this.utc = this.GetInt(133, 6);
+        this.sog = this.getInt(46, 10) / 10;
+        this.cog = this.getInt(112, 12) / 10;
+        this.hdg = parseFloat(this.getInt(124, 9));
+        this.utc = this.getInt(133, 6);
 
-        this.name = this.GetStr(143,120).trim();
-        this.type = this.GetInt(263,8);
+        this.name = this.getStr(143,120).trim();
+        this.type = this.getInt(263,8);
 
-        this.dimA = this.GetInt(271, 9);
-        this.dimB = this.GetInt(280, 9);
-        this.dimC = this.GetInt(289, 6);
-        this.dimD = this.GetInt(295, 6);
+        this.dimA = this.getInt(271, 9);
+        this.dimB = this.getInt(280, 9);
+        this.dimC = this.getInt(289, 6);
+        this.dimD = this.getInt(295, 6);
         this.len  = this.dimA + this.dimB;
         this.wid  = this.dimC + this.dimD;
     }
@@ -302,22 +302,22 @@ export default class AisDecode {
         // 1 = station compliant with Recommendation ITU-R M.1371-3 (or later)
         // 2 = station compliant with Recommendation ITU-R M.1371-5 (or later)
         // 3 = station compliant with future editions
-        const AIS_version_indicator = this.GetInt(38,2);
+        const AIS_version_indicator = this.getInt(38,2);
         if (AIS_version_indicator < 3) {
-            this.imo    = this.GetInt(40,30);
-            this.sign   = this.GetStr(70,42).trim();
-            this.name   = this.GetStr(112,120).trim();
-            this.type   = this.GetInt(232,8);
-            this.dimA   = this.GetInt(240,9);
-            this.dimB   = this.GetInt(249,9);
-            this.dimC   = this.GetInt(258,6);
-            this.dimD   = this.GetInt(264,6);
-            this.etaMo  = this.GetInt(274,4);
-            this.etaDay = this.GetInt(278,5);
-            this.etaHr  = this.GetInt(283,5);
-            this.etaMin = this.GetInt(288,6);
-            this.draft  = this.GetInt(294, 8 ) / 10.0;
-            this.dest   = this.GetStr(302, 120).trim();
+            this.imo    = this.getInt(40,30);
+            this.sign   = this.getStr(70,42).trim();
+            this.name   = this.getStr(112,120).trim();
+            this.type   = this.getInt(232,8);
+            this.dimA   = this.getInt(240,9);
+            this.dimB   = this.getInt(249,9);
+            this.dimC   = this.getInt(258,6);
+            this.dimD   = this.getInt(264,6);
+            this.etaMo  = this.getInt(274,4);
+            this.etaDay = this.getInt(278,5);
+            this.etaHr  = this.getInt(283,5);
+            this.etaMin = this.getInt(288,6);
+            this.draft  = this.getInt(294, 8 ) / 10.0;
+            this.dest   = this.getStr(302, 120).trim();
             this.len    = this.dimA + this.dimB;
             this.wid    = this.dimC + this.dimD;
             this.valid  = true;
@@ -326,23 +326,23 @@ export default class AisDecode {
 
     _decodeStaticDataReport() {
         this.class = 'B';
-        this.part = this.GetInt(38, 2);
+        this.part = this.getInt(38, 2);
         if (0 === this.part) {
-            this.name = this.GetStr(40, 120).trim();
+            this.name = this.getStr(40, 120).trim();
             this.valid = true;
         } else if (this.part === 1) {
-            this.type = this.GetInt(40, 8);
-            this.sign = this.GetStr(90, 42).trim();
+            this.type = this.getInt(40, 8);
+            this.sign = this.getStr(90, 42).trim();
 
             // 98 = auxiliary craft
             if (parseInt(this.immsi / 10000000) === 98) {
-                const mothership = this.GetInt(132, 30);
+                const mothership = this.getInt(132, 30);
                 this.mothership = ('000000000' + mothership).slice(-9);
             } else {
-                this.dimA = this.GetInt(132, 9);
-                this.dimB = this.GetInt(141, 9);
-                this.dimC = this.GetInt(150, 6);
-                this.dimD = this.GetInt(156, 6);
+                this.dimA = this.getInt(132, 9);
+                this.dimB = this.getInt(141, 9);
+                this.dimC = this.getInt(150, 6);
+                this.dimD = this.getInt(156, 6);
                 this.len  = this.dimA + this.dimB;
                 this.wid  = this.dimC + this.dimD;
             }
@@ -353,11 +353,11 @@ export default class AisDecode {
     _decodeBaseStationReport() {
         this.class = '-';
 
-        let lon = this.GetInt(79, 28);
+        let lon = this.getInt(79, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
         lon = parseFloat(lon / 600000);
 
-        let lat = this.GetInt(107, 27);
+        let lat = this.getInt(107, 27);
         if (lat & 0x04000000) lat |= 0xf8000000;
         lat = parseFloat(lat / 600000);
 
@@ -371,13 +371,13 @@ export default class AisDecode {
     _decodeSarAircraftReport() {
         this.class = '-';
 
-        this.alt = this.GetInt(38, 12);
+        this.alt = this.getInt(38, 12);
 
-        let lon = this.GetInt(61, 28);
+        let lon = this.getInt(61, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
         lon = parseFloat(lon / 600000);
 
-        let lat = this.GetInt(89, 27);
+        let lat = this.getInt(89, 27);
         if (lat & 0x04000000) lat |= 0xf8000000;
         lat = parseFloat(lat / 600000);
 
@@ -387,21 +387,21 @@ export default class AisDecode {
             this.valid = true;
         } else this.valid = false;
 
-        this.sog = parseFloat(this.GetInt(50, 10));
-        this.cog = this.GetInt(116, 12) / 10;
+        this.sog = parseFloat(this.getInt(50, 10));
+        this.cog = this.getInt(116, 12) / 10;
     }
 
     _decodeAidToNavigation() {
         this.class = '-';
 
-        this.type = this.GetInt(38, 5);
-        this.name = this.GetStr(43, 120).trim();
+        this.type = this.getInt(38, 5);
+        this.name = this.getStr(43, 120).trim();
 
-        let lon = this.GetInt(164, 28);
+        let lon = this.getInt(164, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
         lon = parseFloat(lon / 600000);
 
-        let lat = this.GetInt(192, 27);
+        let lat = this.getInt(192, 27);
         if (lat & 0x04000000) lat |= 0xf8000000;
         lat = parseFloat(lat / 600000);
 
@@ -411,40 +411,40 @@ export default class AisDecode {
             this.valid = true;
         } else this.valid = false;
 
-        this.dimA = this.GetInt(219, 9);
-        this.dimB = this.GetInt(228, 9);
-        this.dimC = this.GetInt(237, 6);
-        this.dimD = this.GetInt(243, 6);
+        this.dimA = this.getInt(219, 9);
+        this.dimB = this.getInt(228, 9);
+        this.dimC = this.getInt(237, 6);
+        this.dimD = this.getInt(243, 6);
         this.len  = this.dimA + this.dimB;
         this.wid  = this.dimC + this.dimD;
 
-        this.utc = this.GetInt(253, 6);
-        this.offpos = this.GetInt(259, 1);
+        this.utc = this.getInt(253, 6);
+        this.offpos = this.getInt(259, 1);
 
         const len = parseInt(((this.bitarray.length - 272 / 6) / 6) * 6) * 6;
-        this.txt = this.GetStr(272, len).trim();
+        this.txt = this.getStr(272, len).trim();
     }
 
     _decodeTextMessage() {
         this.class = '-';
         if (this.bitarray.length > 40 / 6) {
             const len = parseInt(((this.bitarray.length - 40 / 6) / 6) * 6) * 6;
-            this.txt = this.GetStr(40, len).trim();
+            this.txt = this.getStr(40, len).trim();
             this.valid = true;
         }
     }
 
     _decodeBinaryBroadcastMessage(input) {
-        this.dac = this.GetInt(40, 10);
-        this.fid = this.GetInt(50, 6);
+        this.dac = this.getInt(40, 10);
+        this.fid = this.getInt(50, 6);
         // Inland ship static and voyage related data
         if (this.dac === 200 && this.fid === 10) {
             this.class = '-';
-            this.eni   = this.GetStr(56,48).trim();
-            this.len   = parseFloat(this.GetInt(104, 13)) / 10.;
-            this.wid   = parseFloat(this.GetInt(117, 10)) / 10.;
-            this.eri   = this.GetInt(127, 14);
-            this.draft = parseFloat(this.GetInt(144, 11)) / 100.0;
+            this.eni   = this.getStr(56,48).trim();
+            this.len   = parseFloat(this.getInt(104, 13)) / 10.;
+            this.wid   = parseFloat(this.getInt(117, 10)) / 10.;
+            this.eri   = this.getInt(127, 14);
+            this.draft = parseFloat(this.getInt(144, 11)) / 100.0;
             this.valid = true;
         } else {
             if (DEBUG) {
@@ -455,12 +455,12 @@ export default class AisDecode {
 
     _decodeLongRangeBroadcast() {
         this.class = '-';
-        this.navstatus = this.GetInt(40, 4);
+        this.navstatus = this.getInt(40, 4);
 
-        let lon = this.GetInt(44, 18);
+        let lon = this.getInt(44, 18);
         lon = parseFloat(lon) / 600;
 
-        let lat = this.GetInt(62, 17);
+        let lat = this.getInt(62, 17);
         lat = parseFloat(lat) / 600;
 
         if ((lon <= 180.) && (lat <= 90.)) {
@@ -469,8 +469,8 @@ export default class AisDecode {
             this.valid = true;
         } else this.valid = false;
 
-        this.sog = this.GetInt(79, 6);
-        this.cog = this.GetInt(85, 9);
+        this.sog = this.getInt(79, 6);
+        this.cog = this.getInt(85, 9);
     }
 
     _validateChecksum(input) {
@@ -496,7 +496,7 @@ export default class AisDecode {
     }
 
     // Extract an integer sign or unsigned from payload
-    GetInt(start, len, signed) {
+    getInt(start, len, signed) {
         let acc = 0;
         let cp, cx, c0, cs;
 
@@ -520,11 +520,11 @@ export default class AisDecode {
     }
 
     // Extract a string from payload [1st bits is index 0]
-    GetStr(start, len) {
+    getStr(start, len) {
 
         // extended message are not supported
         if (this.bitarray.length < (start + len) / 6) {
-            //console.log ('AisDecode: ext msg not implemented GetStr(%d,%d)', start, len);
+            //console.log ('AisDecode: ext msg not implemented getStr(%d,%d)', start, len);
             len = parseInt(((this.bitarray.length - start / 6) / 6) * 6) * 6;
         }
         // messages in the wild sometimes produce a negative len which will cause a buffer range error
