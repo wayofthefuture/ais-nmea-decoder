@@ -272,26 +272,6 @@ const testCases = {
     }
 };
 
-describe('AisDecode', () => {
-    for (const [name, props] of Object.entries(testCases)) {
-        describe(name, () => {
-            const decoded = decode(props);
-
-            it('should be valid', () => {
-                expect(decoded.valid).toBe(true);
-            });
-
-            for (const [field, value] of Object.entries(props)) {
-                if (field === 'raw') continue;
-
-                it(`should decode ${field} correctly`, () => {
-                    expect(decoded[field]).toBe(value);
-                });
-            }
-        });
-    }
-});
-
 function decode(testCase) {
     if (Array.isArray(testCase.raw)) {
         const session = {};
@@ -299,4 +279,22 @@ function decode(testCase) {
         return new AisDecode(testCase.raw[1], session);
     }
     return new AisDecode(testCase.raw);
+}
+
+for (const [name, props] of Object.entries(testCases)) {
+    describe(name, () => {
+        const decoded = decode(props);
+
+        it('should be valid', () => {
+            expect(decoded.valid).toBe(true);
+        });
+
+        for (const [field, value] of Object.entries(props)) {
+            if (field === 'raw') continue;
+
+            it(`should decode ${field} correctly`, () => {
+                expect(decoded[field]).toBe(value);
+            });
+        }
+    });
 }
