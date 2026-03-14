@@ -243,13 +243,14 @@ for (const [name, props] of Object.entries(testCases)) {
 
 describe('mapProperties', () => {
     it('should map properties according to the propertyNames', () => {
-        const decoded = new AisDecode(testCases.msg1.raw, null, {
+        AisDecode.configure({
             propertyNames: [
                 ['mmsi', 'vesselId'],
                 ['sog', 'speedOverGround'],
                 ['cog', 'courseOverGround']
             ]
         });
+        const decoded = new AisDecode(testCases.msg1.raw);
 
         expect(decoded.vesselId).toBe('205035000');
         expect(decoded.speedOverGround).toBe(0);
@@ -260,12 +261,13 @@ describe('mapProperties', () => {
     });
 
     it('should skip mapping for undefined properties', () => {
-        const decoded = new AisDecode(testCases.msg1.raw, null, {
+        AisDecode.configure({
             propertyNames: [
                 ['mmsi', 'vesselId'],
                 ['nonExistent', 'renamed']
             ]
         });
+        const decoded = new AisDecode(testCases.msg1.raw);
 
         expect(decoded.vesselId).toBe('205035000');
         expect(decoded.renamed).toBeUndefined();

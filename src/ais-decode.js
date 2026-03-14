@@ -14,15 +14,20 @@ import PayloadBits from './payload-bits.js';
 const enableLogging = false;
 const textEncoder = new TextEncoder();
 
-/**
- * @typedef {Object} AisDecodeOptions
- * @property {Boolean} [bypassClean] - Skip cleaning reserved values from decoded output.
- * @property {Array<[string, string]>} [propertyNames] - Map standard property names to custom property names.
- */
+const defaultOptions = {
+    bypassClean: false,
+    propertyNames: null
+};
+let globalOptions = {...defaultOptions};
+
 
 export default class AisDecode {
-    constructor(input, session, options = {}) {
-        this.options = options;
+    static configure(options) {
+        globalOptions = {...defaultOptions, ...options};
+    }
+
+    constructor(input, session) {
+        this.options = globalOptions;
 
         try {
             const parts = this._getMessageParts(input);
@@ -36,9 +41,7 @@ export default class AisDecode {
         }
 
         this._cleanDecoded();
-        if (options.propertyNames) {
-            this._mapProperties(options.propertyNames);
-        }
+        this._mapProperties();
     }
 
     _getMessageParts(input) {
@@ -438,7 +441,10 @@ export default class AisDecode {
     }
 
     // Map standard property names to custom property names
-    _mapProperties(propertyNames) {
+    _mapProperties() {
+        const {propertyNames} = this.options;
+        if (!propertyNames) return;
+
         for (const [key, value] of propertyNames) {
             if (this[key] === undefined) continue;
             this[value] = this[key];

@@ -106,7 +106,6 @@ export default class PayloadBits {
         return textDecoder.decode(bytes.subarray(0, k));
     }
 
-
     getLon(start) {
         let lon = this.getInt(start, 28);
         if (lon & 0x08000000) lon |= 0xf0000000;
