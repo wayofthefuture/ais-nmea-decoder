@@ -23,7 +23,6 @@ const textDecoder = new TextDecoder();
 export default class AisDecode {
     constructor(input, session, options = {}) {
         this.options = options;
-        this.bitarray = [];
 
         try {
             const parts = this._getMessageParts(input);
@@ -152,6 +151,8 @@ export default class AisDecode {
 
     // Decode printable 6bit AIS/IEC binary format
     _decodeBitArray() {
+        this.bitArray = new Array(this.payload.length);
+        
         for (let i = 0; i < this.payload.length; i++) {
             let byte = this.payload[i];
 
@@ -171,7 +172,7 @@ export default class AisDecode {
                 byte += 0x28;
             }
 
-            this.bitarray[i] = byte;
+            this.bitArray[i] = byte;
         }
 
         this.aistype = this.getInt(0,6);
@@ -387,18 +388,18 @@ export default class AisDecode {
         this.offpos = this.getInt(259, 1);
         this.virtual = this.getInt(269, 1);
 
-        const len = Math.floor(((this.bitarray.length - 272 / 6) / 6) * 6) * 6;
+        const len = Math.floor(((this.bitArray.length - 272 / 6) / 6) * 6) * 6;
         this.txt = this.getStr(272, len).trim();
     }
 
     _decodeTextMessage() {
         this.class = '-';
 
-        if (this.bitarray.length <= 40 / 6) {
+        if (this.bitArray.length <= 40 / 6) {
             throw new Error('Text message is too short');
         }
 
-        const len = Math.floor(((this.bitarray.length - 40 / 6) / 6) * 6) * 6;
+        const len = Math.floor(((this.bitArray.length - 40 / 6) / 6) * 6) * 6;
         this.txt = this.getStr(40, len).trim();
     }
 
@@ -463,7 +464,7 @@ export default class AisDecode {
         for (let i = 0; i < len; i++) {
             acc = acc << 1;
             cp = Math.floor((start + i) / 6);
-            cx = this.bitarray[cp];
+            cx = this.bitArray[cp];
             cs = 5 - ((start + i) % 6);
             c0 = (cx >> cs) & 1;
             // if signed value and first bit is 1, pad with 1's
@@ -480,14 +481,14 @@ export default class AisDecode {
     getBool(start) {
         const cp = Math.floor(start / 6);
         const cs = 5 - (start % 6);
-        return ((this.bitarray[cp] >> cs) & 1) === 1;
+        return ((this.bitArray[cp] >> cs) & 1) === 1;
     }
 
     // Extract a string from payload [1st bits is index 0]
     getStr(start, len) {
         // If requested string exceeds available data, truncate to what's available (aligned to 6-bit boundary)
-        if (this.bitarray.length < (start + len) / 6) {
-            len = Math.floor(((this.bitarray.length - start / 6) / 6) * 6) * 6;
+        if (this.bitArray.length < (start + len) / 6) {
+            len = Math.floor(((this.bitArray.length - start / 6) / 6) * 6) * 6;
         }
 
         // messages in the wild sometimes produce a negative len which will cause a buffer range error
@@ -504,7 +505,7 @@ export default class AisDecode {
             for (let j = 0; j < 6; j++) {
                 acc = acc << 1;
                 cp = Math.floor((start + i) / 6);
-                cx = this.bitarray[cp];
+                cx = this.bitArray[cp];
                 cs = 5 - ((start + i) % 6);
                 c0 = (cx >> (5 - ((start + i) % 6))) & 1;
                 acc |= c0;
