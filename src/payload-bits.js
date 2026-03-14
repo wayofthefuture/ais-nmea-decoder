@@ -89,7 +89,7 @@ export default class PayloadBits {
                 cp = Math.floor((start + i) / 6);
                 cx = this.bits[cp];
                 cs = 5 - ((start + i) % 6);
-                c0 = (cx >> (5 - ((start + i) % 6))) & 1;
+                c0 = (cx >> cs) & 1;
                 acc |= c0;
                 i++;
             }
