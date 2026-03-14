@@ -152,12 +152,12 @@ export default class AisDecode {
     _decodeMessage(payload, input) {
         const bits = new PayloadBits(payload);
 
-        this.aistype = bits.getInt(0,6);
-        this.repeat  = bits.getInt(6,2);
-        this.immsi   = bits.getInt(8,30);
-        this.mmsi    = ('000000000' + this.immsi).slice(-9);
+        this.mtype  = bits.getInt(0,6);
+        this.repeat = bits.getInt(6,2);
+        this.immsi  = bits.getInt(8,30);
+        this.mmsi   = ('000000000' + this.immsi).slice(-9);
 
-        switch (this.aistype) {
+        switch (this.mtype) {
             case 1:
             case 2:
             case 3:
@@ -192,14 +192,14 @@ export default class AisDecode {
                 this._decodeLongRangeBroadcast(bits);
                 break;
             default:
-                if (enableLogging) console.log('---- type=%d %s %s -> %s', this.aistype, this.getAisType(this.aistype), this.mmsi, input);
+                if (enableLogging) console.log('---- type=%d %s %s -> %s', this.mtype, this.getAisType(this.mtype), this.mmsi, input);
                 break;
         }
     }
 
     _decodeClassAPositionReport(bits) {
         this.class = 'A';
-        this.navstatus = bits.getInt(38, 4);
+        this.nav = bits.getInt(38, 4);
 
         this.lon = bits.getLon(61);
         this.lat = bits.getLat(89);
@@ -382,7 +382,7 @@ export default class AisDecode {
 
     _decodeLongRangeBroadcast(bits) {
         this.class = '-';
-        this.navstatus = bits.getInt(40, 4);
+        this.nav = bits.getInt(40, 4);
 
         // lon/lat has different format than other messages
         this.lon = bits.getInt(44, 18) / 600;
@@ -451,11 +451,11 @@ export default class AisDecode {
     }
 
     getNavStatus() {
-        return NAV_STATUS[this.navstatus];
+        return NAV_STATUS[this.nav];
     }
 
     getAisType() {
-        return MSG_TYPE[this.aistype];
+        return MSG_TYPE[this.mtype];
     }
 
     getVesselType() {
