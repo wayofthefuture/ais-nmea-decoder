@@ -31,10 +31,10 @@ export default class AisDecode {
 
         try {
             const parts = this._getMessageParts(input);
-            const ready = this._parseMessage(parts, session);
-            if (!ready) return;
+            const payload = this._parseMessage(parts, session);
+            if (!payload) return;
 
-            this._decodeMessage(input);
+            this._decodeMessage(payload, input);
         } catch (error) {
             this.error = error.message;
             return;
@@ -79,7 +79,7 @@ export default class AisDecode {
         return parts;
     }
     
-    // Parse message fragments into a session object and return true when all fragments have been received
+    // Parse message fragments into a session object and return the encoded payload when all fragments have been received
     _parseMessage(parts, session) {
         const totalFragments = Number(parts[1]);
         const channel = parts[4];
@@ -88,8 +88,7 @@ export default class AisDecode {
         this.channel = channel;
 
         if (totalFragments === 1) {
-            this.payload = textEncoder.encode(rawPayload);
-            return true;
+            return textEncoder.encode(rawPayload);
         }
 
         // parse multi-fragment message
@@ -98,7 +97,7 @@ export default class AisDecode {
         const sequenceId = parts[3].length > 0 ? Number(parts[3]) : NaN;
 
         const valid = this._validateFragment(session, messageType, currentFragment, sequenceId);
-        if (!valid) return false;
+        if (!valid) return undefined;
 
         session[currentFragment] = {rawPayload};
 
@@ -110,11 +109,10 @@ export default class AisDecode {
         }
         
         if (currentFragment < totalFragments) {
-            return false;
+            return undefined;
         }
 
-        this._combinePayloads(session);
-        return true;
+        return this._combinePayloads(session);
     }
 
     _validateFragment(session, messageType, currentFragment, sequenceId) {
@@ -148,11 +146,11 @@ export default class AisDecode {
             payloads.push(session[i].rawPayload);
         }
 
-        this.payload = textEncoder.encode(payloads.join(''));
+        return textEncoder.encode(payloads.join(''));
     }
 
-    _decodeMessage(input) {
-        const bits = new PayloadBits(this.payload);
+    _decodeMessage(payload, input) {
+        const bits = new PayloadBits(payload);
 
         this.aistype = bits.getInt(0,6);
         this.repeat  = bits.getInt(6,2);
