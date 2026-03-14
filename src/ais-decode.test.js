@@ -136,7 +136,7 @@ const testCases = {
         type: 1,
         lon: 144.88636666666667,
         lat: -38.03993166666667,
-        txt: "",
+        text: "",
         virtual: 1,
         offpos: 0
     },
@@ -148,7 +148,7 @@ const testCases = {
         type: 6,
         lon: 18.306638333333332,
         lat: 40.390795,
-        txt: 'LDO DI LECCE',
+        text: 'LDO DI LECCE',
         virtual: 0,
         offpos: 0
     },
@@ -200,7 +200,7 @@ const testCases = {
         raw: '!AIVDM,1,1,,A,>>O5`4tlt:1@E=@,2*15',
         aistype: 14,
         mmsi: '972122131',
-        txt: 'MOB TEST'
+        text: 'MOB TEST'
     },
     msg27: { // position lon range
         raw: '!AIVDM,1,1,,B,K9TJi5H@o9jiPP2D,0*3E',

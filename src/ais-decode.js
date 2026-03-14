@@ -9,10 +9,10 @@ https://www.apache.org/licenses/LICENSE-2.0
 'use strict';
 
 import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants.js';
+import PayloadBits from './payload-bits.js';
 
 const enableLogging = false;
 const textEncoder = new TextEncoder();
-const textDecoder = new TextDecoder();
 
 /**
  * @typedef {Object} AisDecodeOptions
@@ -29,8 +29,7 @@ export default class AisDecode {
             const ready = this._parseMessage(parts, session);
             if (!ready) return;
 
-            this._decodeBitArray();
-            this._decodeMessageType(input);
+            this._decodeMessage(input);
         } catch (error) {
             this.error = error.message;
             return;
@@ -149,72 +148,47 @@ export default class AisDecode {
         this.payload = textEncoder.encode(payloads.join(''));
     }
 
-    // Decode printable 6bit AIS/IEC binary format
-    _decodeBitArray() {
-        this.bitArray = new Array(this.payload.length);
-        
-        for (let i = 0; i < this.payload.length; i++) {
-            let byte = this.payload[i];
+    _decodeMessage(input) {
+        const bits = new PayloadBits(this.payload);
 
-            // check byte is not out of range
-            if ((byte < 0x30) || (byte > 0x77)) {
-                throw new Error('AisDecode: Payload contains invalid character.');
-            }
-            if ((0x57 < byte) && (byte < 0x60)) {
-                throw new Error('AisDecode: Payload contains invalid character.');
-            }
-
-            // move from printable char to 6 bit representation
-            byte += 0x28;
-            if (byte > 0x80) {
-                byte += 0x20;
-            } else {
-                byte += 0x28;
-            }
-
-            this.bitArray[i] = byte;
-        }
-
-        this.aistype = this.getInt(0,6);
-        this.repeat  = this.getInt(6,2);
-        this.immsi   = this.getInt(8,30);
+        this.aistype = bits.getInt(0,6);
+        this.repeat  = bits.getInt(6,2);
+        this.immsi   = bits.getInt(8,30);
         this.mmsi    = ('000000000' + this.immsi).slice(-9);
-    }
 
-    _decodeMessageType(input) {
         switch (this.aistype) {
             case 1:
             case 2:
             case 3:
-                this._decodeClassAPositionReport();
+                this._decodeClassAPositionReport(bits);
                 break;
             case 4:
             case 11:
-                this._decodeBaseStationReport();
+                this._decodeBaseStationReport(bits);
                 break;
             case 5:
-                this._decodeStaticVoyageData();
+                this._decodeStaticVoyageData(bits);
                 break;
             case 9:
-                this._decodeSarAircraftReport();
+                this._decodeSarAircraftReport(bits);
                 break;
             case 14:
-                this._decodeTextMessage();
+                this._decodeTextMessage(bits);
                 break;
             case 18:
-                this._decodeClassBPositionReport();
+                this._decodeClassBPositionReport(bits);
                 break;
             case 19:
-                this._decodeExtendedClassBPositionReport();
+                this._decodeExtendedClassBPositionReport(bits);
                 break;
             case 21:
-                this._decodeAidToNavigation();
+                this._decodeAidToNavigation(bits);
                 break;
             case 24:
-                this._decodeStaticDataReport();
+                this._decodeStaticDataReport(bits);
                 break;
             case 27:
-                this._decodeLongRangeBroadcast();
+                this._decodeLongRangeBroadcast(bits);
                 break;
             default:
                 if (enableLogging) console.log('---- type=%d %s %s -> %s', this.aistype, this.getAisType(this.aistype), this.mmsi, input);
@@ -222,116 +196,116 @@ export default class AisDecode {
         }
     }
 
-    _decodeClassAPositionReport() {
+    _decodeClassAPositionReport(bits) {
         this.class = 'A';
-        this.navstatus = this.getInt(38, 4);
+        this.navstatus = bits.getInt(38, 4);
 
-        this.lon = this.getLon(61);
-        this.lat = this.getLat(89);
+        this.lon = bits.getLon(61);
+        this.lat = bits.getLat(89);
         if (!this._validatePosition(this.lon, this.lat)) {
             throw new Error('Invalid longitude/latitude in Class A position report');
         }
 
-        this.rot = this.getInt(42, 8, true)
-        this.sog = this.getInt(50, 10) / 10;
-        this.cog = this.getInt(116, 12) / 10;
-        this.hdg = this.getInt(128, 9);
-        this.utc = this.getInt(137, 6);
-        this.smi = this.getInt(143, 2);
+        this.rot = bits.getInt(42, 8, true)
+        this.sog = bits.getInt(50, 10) / 10;
+        this.cog = bits.getInt(116, 12) / 10;
+        this.hdg = bits.getInt(128, 9);
+        this.utc = bits.getInt(137, 6);
+        this.smi = bits.getInt(143, 2);
     }
 
-    _decodeClassBPositionReport() {
+    _decodeClassBPositionReport(bits) {
         this.class = 'B';
         this.status = -1;  // Class B targets have no status.  Enforce this...
-        this.repeat = this.getInt(6,2);
-        this.accuracy = this.getInt(56, 1);
+        this.repeat = bits.getInt(6,2);
+        this.accuracy = bits.getInt(56, 1);
 
-        this.lon = this.getLon(57);
-        this.lat = this.getLat(85);
+        this.lon = bits.getLon(57);
+        this.lat = bits.getLat(85);
         if (!this._validatePosition(this.lon, this.lat)) {
             throw new Error('Invalid longitude/latitude in Class B position report');
         }
 
-        this.sog = this.getInt(46, 10) / 10;
-        this.cog = this.getInt(112, 12) / 10;
-        this.hdg = this.getInt(124, 9);
-        this.utc = this.getInt(134, 6);
-        this.dsc = this.getBool(143);
+        this.sog = bits.getInt(46, 10) / 10;
+        this.cog = bits.getInt(112, 12) / 10;
+        this.hdg = bits.getInt(124, 9);
+        this.utc = bits.getInt(134, 6);
+        this.dsc = bits.getBool(143);
     }
 
-    _decodeExtendedClassBPositionReport() {
+    _decodeExtendedClassBPositionReport(bits) {
         this.class = 'B';
         this.status = -1;  // Class B targets have no status.  Enforce this...
 
-        this.lon = this.getLon(57);
-        this.lat = this.getLat(85);
+        this.lon = bits.getLon(57);
+        this.lat = bits.getLat(85);
         if (!this._validatePosition(this.lon, this.lat)) {
             throw new Error('Invalid longitude/latitude in Extended Class B position report');
         }
 
-        this.sog = this.getInt(46, 10) / 10;
-        this.cog = this.getInt(112, 12) / 10;
-        this.hdg = this.getInt(124, 9);
-        this.utc = this.getInt(133, 6);
+        this.sog = bits.getInt(46, 10) / 10;
+        this.cog = bits.getInt(112, 12) / 10;
+        this.hdg = bits.getInt(124, 9);
+        this.utc = bits.getInt(133, 6);
 
-        this.name = this.getStr(143,120).trim();
-        this.type = this.getInt(263,8);
+        this.name = bits.getStr(143,120).trim();
+        this.type = bits.getInt(263,8);
 
-        this.dimA = this.getInt(271, 9);
-        this.dimB = this.getInt(280, 9);
-        this.dimC = this.getInt(289, 6);
-        this.dimD = this.getInt(295, 6);
+        this.dimA = bits.getInt(271, 9);
+        this.dimB = bits.getInt(280, 9);
+        this.dimC = bits.getInt(289, 6);
+        this.dimD = bits.getInt(295, 6);
         this.len  = this.dimA + this.dimB;
         this.wid  = this.dimC + this.dimD;
     }
 
-    _decodeStaticVoyageData() {
+    _decodeStaticVoyageData(bits) {
         this.class = 'A';
 
-        this.ver   = this.getInt(38,2);
-        this.imo   = this.getInt(40, 30);
-        this.sign  = this.getStr(70, 42).trim();
-        this.name  = this.getStr(112, 120).trim();
-        this.type  = this.getInt(232, 8);
+        this.ver   = bits.getInt(38,2);
+        this.imo   = bits.getInt(40, 30);
+        this.sign  = bits.getStr(70, 42).trim();
+        this.name  = bits.getStr(112, 120).trim();
+        this.type  = bits.getInt(232, 8);
 
-        this.dimA  = this.getInt(240, 9);
-        this.dimB  = this.getInt(249, 9);
-        this.dimC  = this.getInt(258, 6);
-        this.dimD  = this.getInt(264, 6);
+        this.dimA  = bits.getInt(240, 9);
+        this.dimB  = bits.getInt(249, 9);
+        this.dimC  = bits.getInt(258, 6);
+        this.dimD  = bits.getInt(264, 6);
 
-        this.etaMo = this.getInt(274, 4);
-        this.etaDy = this.getInt(278, 5);
-        this.etaHr = this.getInt(283, 5);
-        this.etaMn = this.getInt(288, 6);
-        this.draft = this.getInt(294, 8) / 10;
-        this.dest  = this.getStr(302, 120).trim();
+        this.etaMo = bits.getInt(274, 4);
+        this.etaDy = bits.getInt(278, 5);
+        this.etaHr = bits.getInt(283, 5);
+        this.etaMn = bits.getInt(288, 6);
+        this.draft = bits.getInt(294, 8) / 10;
+        this.dest  = bits.getStr(302, 120).trim();
 
         this.len = this.dimA + this.dimB;
         this.wid = this.dimC + this.dimD;
     }
 
-    _decodeStaticDataReport() {
+    _decodeStaticDataReport(bits) {
         this.class = 'B';
-        this.part = this.getInt(38, 2);
+        this.part = bits.getInt(38, 2);
 
         if (this.part === 0) {
-            this.name = this.getStr(40, 120).trim();
+            this.name = bits.getStr(40, 120).trim();
             return;
         }
 
         if (this.part === 1) {
-            this.type = this.getInt(40, 8);
-            this.sign = this.getStr(90, 42).trim();
+            this.type = bits.getInt(40, 8);
+            this.sign = bits.getStr(90, 42).trim();
 
             // 98 = auxiliary craft
             if (Math.floor(this.immsi / 10000000) === 98) {
-                const mothership = this.getInt(132, 30);
+                const mothership = bits.getInt(132, 30);
                 this.mothership = ('000000000' + mothership).slice(-9);
             } else {
-                this.dimA = this.getInt(132, 9);
-                this.dimB = this.getInt(141, 9);
-                this.dimC = this.getInt(150, 6);
-                this.dimD = this.getInt(156, 6);
+                this.dimA = bits.getInt(132, 9);
+                this.dimB = bits.getInt(141, 9);
+                this.dimC = bits.getInt(150, 6);
+                this.dimD = bits.getInt(156, 6);
                 this.len  = this.dimA + this.dimB;
                 this.wid  = this.dimC + this.dimD;
             }
@@ -341,81 +315,83 @@ export default class AisDecode {
         throw new Error('Invalid part number for static data report');
     }
 
-    _decodeBaseStationReport() {
+    _decodeBaseStationReport(bits) {
         this.class = '-';
 
-        this.lon = this.getLon(79);
-        this.lat = this.getLat(107);
+        this.lon = bits.getLon(79);
+        this.lat = bits.getLat(107);
         if (!this._validatePosition(this.lon, this.lat)) {
             throw new Error('Invalid longitude/latitude in Base Station report');
         }
     }
 
-    _decodeSarAircraftReport() {
+    _decodeSarAircraftReport(bits) {
         this.class = '-';
-        this.alt = this.getInt(38, 12);
+        this.alt = bits.getInt(38, 12);
 
-        this.lon = this.getLon(61);
-        this.lat = this.getLat(89);
+        this.lon = bits.getLon(61);
+        this.lat = bits.getLat(89);
         if (!this._validatePosition(this.lon, this.lat)) {
             throw new Error('Invalid longitude/latitude in SAR Aircraft report');
         }
 
         //whole numbers for aircraft speed
-        this.sog = this.getInt(50, 10);
-        this.cog = this.getInt(116, 12) / 10;
+        this.sog = bits.getInt(50, 10);
+        this.cog = bits.getInt(116, 12) / 10;
     }
 
-    _decodeAidToNavigation() {
+    _decodeAidToNavigation(bits) {
         this.class = '-';
-        this.type = this.getInt(38, 5);
-        this.name = this.getStr(43, 120).trim();
+        this.type = bits.getInt(38, 5);
+        this.name = bits.getStr(43, 120).trim();
 
-        this.lon = this.getLon(164);
-        this.lat = this.getLat(192);
+        this.lon = bits.getLon(164);
+        this.lat = bits.getLat(192);
         if (!this._validatePosition(this.lon, this.lat)) {
             throw new Error('Invalid longitude/latitude in Aid to Navigation report');
         }
 
-        this.dimA = this.getInt(219, 9);
-        this.dimB = this.getInt(228, 9);
-        this.dimC = this.getInt(237, 6);
-        this.dimD = this.getInt(243, 6);
+        this.dimA = bits.getInt(219, 9);
+        this.dimB = bits.getInt(228, 9);
+        this.dimC = bits.getInt(237, 6);
+        this.dimD = bits.getInt(243, 6);
         this.len  = this.dimA + this.dimB;
         this.wid  = this.dimC + this.dimD;
 
-        this.utc = this.getInt(253, 6);
-        this.offpos = this.getInt(259, 1);
-        this.virtual = this.getInt(269, 1);
+        this.utc = bits.getInt(253, 6);
+        this.offpos = bits.getInt(259, 1);
+        this.virtual = bits.getInt(269, 1);
 
-        const len = Math.floor(((this.bitArray.length - 272 / 6) / 6) * 6) * 6;
-        this.txt = this.getStr(272, len).trim();
+        const bitLen = bits.getLength();
+        const txtLen = Math.floor(((bitLen - 272 / 6) / 6) * 6) * 6;
+        this.text = bits.getStr(272, txtLen).trim();
     }
 
-    _decodeTextMessage() {
+    _decodeTextMessage(bits) {
         this.class = '-';
 
-        if (this.bitArray.length <= 40 / 6) {
+        const bitLen = bits.getLength();
+        if (bitLen <= 40 / 6) {
             throw new Error('Text message is too short');
         }
 
-        const len = Math.floor(((this.bitArray.length - 40 / 6) / 6) * 6) * 6;
-        this.txt = this.getStr(40, len).trim();
+        const txtLen = Math.floor(((bitLen - 40 / 6) / 6) * 6) * 6;
+        this.text = bits.getStr(40, txtLen).trim();
     }
 
-    _decodeLongRangeBroadcast() {
+    _decodeLongRangeBroadcast(bits) {
         this.class = '-';
-        this.navstatus = this.getInt(40, 4);
+        this.navstatus = bits.getInt(40, 4);
 
         // lon/lat has different format than other messages
-        this.lon = this.getInt(44, 18) / 600;
-        this.lat = this.getInt(62, 17) / 600;
+        this.lon = bits.getInt(44, 18) / 600;
+        this.lat = bits.getInt(62, 17) / 600;
         if (!this._validatePosition(this.lon, this.lat)) {
             throw new Error('Invalid longitude/latitude in Long Range Broadcast report');
         }
 
-        this.sog = this.getInt(79, 6);
-        this.cog = this.getInt(85, 9);
+        this.sog = bits.getInt(79, 6);
+        this.cog = bits.getInt(85, 9);
     }
 
     _validateChecksum(input) {
@@ -442,86 +418,6 @@ export default class AisDecode {
 
     _validatePosition(lon, lat) {
         return (Math.abs(lon) <= 180 && Math.abs(lat) <= 90);
-    }
-
-    getLon(start) {
-        let lon = this.getInt(start, 28);
-        if (lon & 0x08000000) lon |= 0xf0000000;
-        return lon / 600000;
-    }
-
-    getLat(start) {
-        let lat = this.getInt(start, 27);
-        if (lat & 0x04000000) lat |= 0xf8000000;
-        return lat / 600000;
-    }
-
-    // Extract an integer sign or unsigned from payload
-    getInt(start, len, signed) {
-        let acc = 0;
-        let cp, cx, c0, cs;
-
-        for (let i = 0; i < len; i++) {
-            acc = acc << 1;
-            cp = Math.floor((start + i) / 6);
-            cx = this.bitArray[cp];
-            cs = 5 - ((start + i) % 6);
-            c0 = (cx >> cs) & 1;
-            // if signed value and first bit is 1, pad with 1's
-            if (i === 0 && signed && c0) {
-                acc = ~acc;
-            }
-            acc |= c0;
-        }
-
-        return acc;
-    }
-
-    // Extract a boolean (single bit) from payload
-    getBool(start) {
-        const cp = Math.floor(start / 6);
-        const cs = 5 - (start % 6);
-        return ((this.bitArray[cp] >> cs) & 1) === 1;
-    }
-
-    // Extract a string from payload [1st bits is index 0]
-    getStr(start, len) {
-        // If requested string exceeds available data, truncate to what's available (aligned to 6-bit boundary)
-        if (this.bitArray.length < (start + len) / 6) {
-            len = Math.floor(((this.bitArray.length - start / 6) / 6) * 6) * 6;
-        }
-
-        // messages in the wild sometimes produce a negative len which will cause a buffer range error
-        if (len < 0) return '';
-
-        const bytes = new Uint8Array(len / 6);
-        let cp, cx, cs, c0;
-        let acc = 0;
-        let k = 0;
-        let i = 0;
-
-        while (i < len) {
-            acc = 0;
-            for (let j = 0; j < 6; j++) {
-                acc = acc << 1;
-                cp = Math.floor((start + i) / 6);
-                cx = this.bitArray[cp];
-                cs = 5 - ((start + i) % 6);
-                c0 = (cx >> (5 - ((start + i) % 6))) & 1;
-                acc |= c0;
-                i++;
-            }
-            bytes[k] = acc;
-            if (acc < 0x20) {
-                bytes[k] += 0x40;
-            } else {
-                bytes[k] = acc;
-            }
-            if (bytes[k] === 0x40) break; // name end with '@'
-            k++;
-        }
-
-        return textDecoder.decode(bytes.subarray(0, k));
     }
 
     // Apply encoded undefined values to the decoded object
