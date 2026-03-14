@@ -67,6 +67,7 @@ const testCases = {
         raw: '!AIVDM,1,1,,A,55?MbV42;H;s<HtKR20EHE:0@T4@Dn2222222216L961O0000i000000000000000000000,0*2D',
         aistype: 5,
         mmsi: '351759000',
+        ver: 1,
         imo: 9134270,
         sign: '3FOF8',
         name: 'EVER DIADEM',
@@ -227,7 +228,7 @@ for (const [name, props] of Object.entries(testCases)) {
         const decoded = decode(props);
 
         it('should be valid', () => {
-            expect(decoded.valid).toBe(true);
+            expect(decoded.error).toBeUndefined();
         });
 
         for (const [field, value] of Object.entries(props)) {
