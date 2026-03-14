@@ -38,6 +38,14 @@ export default class PayloadBits {
         return this.bits.length;
     }
 
+    getLon(start) {
+        return this.getInt(start, 28, true) / 600000;
+    }
+
+    getLat(start) {
+        return this.getInt(start, 27, true) / 600000;
+    }
+
     // Extract an integer sign or unsigned from payload
     getInt(start, len, signed) {
         let acc = 0;
@@ -104,17 +112,5 @@ export default class PayloadBits {
         }
 
         return textDecoder.decode(bytes.subarray(0, k));
-    }
-
-    getLon(start) {
-        let lon = this.getInt(start, 28);
-        if (lon & 0x08000000) lon |= 0xf0000000;
-        return lon / 600000;
-    }
-
-    getLat(start) {
-        let lat = this.getInt(start, 27);
-        if (lat & 0x04000000) lat |= 0xf8000000;
-        return lat / 600000;
     }
 }
