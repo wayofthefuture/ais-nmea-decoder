@@ -16,7 +16,8 @@ const textDecoder = new TextDecoder();
 
 /**
  * @typedef {Object} AisDecodeOptions
- * @property {boolean} [bypassClean] - Skip cleaning reserved values from decoded output
+ * @property {Boolean} [bypassClean] - Skip cleaning reserved values from decoded output.
+ * @property {Array<[string, string]>} [propertyNames] - Map standard property names to custom property names.
  */
 
 export default class AisDecode {
@@ -26,15 +27,19 @@ export default class AisDecode {
 
         try {
             const parts = this._getMessageParts(input);
-
             const ready = this._parseMessage(parts, session);
             if (!ready) return;
 
             this._decodeBitArray();
             this._decodeMessageType(input);
-            this._cleanDecoded();
         } catch (error) {
             this.error = error.message;
+            return;
+        }
+
+        this._cleanDecoded();
+        if (options.propertyNames) {
+            this._mapProperties(options.propertyNames);
         }
     }
 
@@ -461,16 +466,13 @@ export default class AisDecode {
             cx = this.bitarray[cp];
             cs = 5 - ((start + i) % 6);
             c0 = (cx >> cs) & 1;
-
-            if (i === 0 && signed && c0) { // if signed value and first bit is 1, pad with 1's
+            // if signed value and first bit is 1, pad with 1's
+            if (i === 0 && signed && c0) {
                 acc = ~acc;
             }
             acc |= c0;
-
-            //console.log ('**** bitarray[%d]=cx=%s i=%d cs=%d  co=%s acc=%s'
-            //,cp , this.bitarray[cp].toString(2), i, cs,  c0.toString(2),acc.toString(2));
         }
-        //console.log ('---- start=%d len=%d acc=%s acc=%d', start, len ,  acc.toString(2), acc);
+
         return acc;
     }
 
@@ -483,9 +485,8 @@ export default class AisDecode {
 
     // Extract a string from payload [1st bits is index 0]
     getStr(start, len) {
-        // extended message are not supported
+        // If requested string exceeds available data, truncate to what's available (aligned to 6-bit boundary)
         if (this.bitarray.length < (start + len) / 6) {
-            //console.log ('AisDecode: ext msg not implemented getStr(%d,%d)', start, len);
             len = Math.floor(((this.bitarray.length - start / 6) / 6) * 6) * 6;
         }
 
@@ -537,6 +538,15 @@ export default class AisDecode {
         }
 
         //todo: more needed here
+    }
+
+    // Map standard property names to custom property names
+    _mapProperties(propertyNames) {
+        for (const [key, value] of propertyNames) {
+            if (this[key] === undefined) continue;
+            this[value] = this[key];
+            delete this[key];
+        }
     }
 
     getNavStatus() {

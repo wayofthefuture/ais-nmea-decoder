@@ -240,3 +240,34 @@ for (const [name, props] of Object.entries(testCases)) {
         }
     });
 }
+
+describe('mapProperties', () => {
+    it('should map properties according to the propertyNames', () => {
+        const decoded = new AisDecode(testCases.msg1.raw, null, {
+            propertyNames: [
+                ['mmsi', 'vesselId'],
+                ['sog', 'speedOverGround'],
+                ['cog', 'courseOverGround']
+            ]
+        });
+
+        expect(decoded.vesselId).toBe('205035000');
+        expect(decoded.speedOverGround).toBe(0);
+        expect(decoded.courseOverGround).toBe(0);
+        expect(decoded.mmsi).toBeUndefined();
+        expect(decoded.sog).toBeUndefined();
+        expect(decoded.cog).toBeUndefined();
+    });
+
+    it('should skip mapping for undefined properties', () => {
+        const decoded = new AisDecode(testCases.msg1.raw, null, {
+            propertyNames: [
+                ['mmsi', 'vesselId'],
+                ['nonExistent', 'renamed']
+            ]
+        });
+
+        expect(decoded.vesselId).toBe('205035000');
+        expect(decoded.renamed).toBeUndefined();
+    });
+});
