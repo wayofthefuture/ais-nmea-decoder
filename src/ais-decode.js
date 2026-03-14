@@ -14,13 +14,14 @@ const enableLogging = false;
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
-const defaultOptions = {
-    preserveReserved: false
-};
+/**
+ * @typedef {Object} AisDecodeOptions
+ * @property {boolean} [bypassClean] - Skip cleaning reserved values from decoded output
+ */
 
 export default class AisDecode {
-    constructor(input, session, options) {
-        this.options = {...defaultOptions, ...options};
+    constructor(input, session, options = {}) {
+        this.options = options;
         this.bitarray = [];
 
         try {
@@ -509,8 +510,11 @@ export default class AisDecode {
                 i++;
             }
             bytes[k] = acc;
-            if (acc < 0x20) bytes[k] += 0x40;
-            else            bytes[k] = acc;
+            if (acc < 0x20) {
+                bytes[k] += 0x40;
+            } else {
+                bytes[k] = acc;
+            }
             if (bytes[k] === 0x40) break; // name end with '@'
             k++;
         }
@@ -518,19 +522,21 @@ export default class AisDecode {
         return textDecoder.decode(bytes.subarray(0, k));
     }
 
+    // Apply encoded undefined values to the decoded object
     _cleanDecoded() {
-        if (!this.options.preserveReserved) {
-            if (this.sog === 102.3) {
-                delete this.sog;
-            }
-            if (this.cog === 511) {
-                delete this.cog;
-            }
-            if (this.hdg === 511) {
-                delete this.hdg;
-            }
+        if (this.options.bypassClean) return;
+
+        if (this.sog === 102.3) {
+            delete this.sog;
         }
-        // todo: add additional here
+        if (this.cog === 511) {
+            delete this.cog;
+        }
+        if (this.hdg === 511) {
+            delete this.hdg;
+        }
+
+        //todo: more needed here
     }
 
     getNavStatus() {
