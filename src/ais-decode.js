@@ -6,24 +6,31 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-'use strict';
-
+import {qualityCheck, configureQuality} from './quality-check.js';
 import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants.js';
 import PayloadBits from './payload-bits.js';
 
 const enableLogging = false;
 const textEncoder = new TextEncoder();
 
-const defaultOptions = {
+export const defaultOptions = {
     bypassClean: false,
-    propertyNames: null
+    propertyNames: null,
+    qualityCheck: false,
+    quality: {
+        requiredDynamic: 2,  // Number of required consecutive messages with position for an mmsi before accepting.
+        requiredStatic: 1,   // Number of required consecutive messages with static information for an mmsi before accepting.
+        maxDistanceNm: 1     // Maximum distance in nautical miles between consecutive position reports within the distance timeout.
+    }
 };
 let globalOptions = {...defaultOptions};
+configureQuality(globalOptions.quality);
 
 
 export default class AisDecode {
     static configure(options) {
         globalOptions = {...defaultOptions, ...options};
+        configureQuality(globalOptions.quality);
     }
 
     constructor(input, session) {
@@ -35,6 +42,7 @@ export default class AisDecode {
             if (!payload) return;
 
             this._decodeMessage(payload, input);
+            if (this.options.qualityCheck) qualityCheck();
         } catch (error) {
             this.error = error.message;
             return;
