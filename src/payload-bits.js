@@ -1,41 +1,53 @@
+import bitwise from 'bitwise';
+
 const textDecoder = new TextDecoder();
 
-// Decode printable 6bit AIS/IEC binary format
 export default class PayloadBits {
     constructor(payload) {
         this.decode(payload);
     }
-    
+
+    // Converts AIS "armored ASCII" payload into a flat array of bits.
+    // See AIVDM/AIVDO Payload Armoring in the guide for details.
+    //
+    // The data payload is an ASCII-encoded bit vector. Each character
+    // represents six bits of data using two ASCII ranges:
+    //   6-bit 0-39  → ASCII 48-87  ('0' to 'W')
+    //   6-bit 40-63 → ASCII 96-119 ('`' to 'w')
+    //
+    // The gap ASCII 88-95 ('X' to '_') is unused.
+    //
     decode(payload) {
-        const bits = new Array(payload.length);
+        const bits = [];
 
         for (let i = 0; i < payload.length; i++) {
-            let byte = payload[i];
+            let code = payload[i];  // standard ascii char code
 
-            // check byte is not out of range
-            if ((byte < 0x30) || (byte > 0x77)) {
+            // check invalid ASCII ranges outside of 48-87 and 96-119
+            if (code < 48 || code > 119) {
                 throw new Error('AisDecode: Payload contains invalid character.');
             }
-            if ((0x57 < byte) && (byte < 0x60)) {
+            if (code > 87 && code < 96) {
                 throw new Error('AisDecode: Payload contains invalid character.');
             }
 
-            // move from printable char to 6 bit representation
-            byte += 0x28;
-            if (byte > 0x80) {
-                byte += 0x20;
-            } else {
-                byte += 0x28;
+            // Each character represents six bits of data. To recover the six bits, subtract 48
+            // from the ASCII character value - if the result is greater than 40 - subtract 8.
+            code -= 48;
+            if (code > 40) {
+                code -= 8;
             }
 
-            bits[i] = byte;
+            // convert 6-bit value to individual bits
+            const eightBits = bitwise.byte.read(code);
+            bits.push(...eightBits.slice(2));
         }
         
         this.bits = bits;
     }
 
     getLength() {
-        return this.bits.length;
+        return this.bits.length / 6;
     }
 
     getLon(start) {
@@ -46,71 +58,72 @@ export default class PayloadBits {
         return this.getInt(start, 27, true) / 600000;
     }
 
-    // Extract an integer sign or unsigned from payload
-    getInt(start, len, signed) {
-        let acc = 0;
-        let cp, cx, c0, cs;
+    // Extract an integer (signed or unsigned) from the bit array.
+    //
+    // - For unsigned integers, the bits are converted directly to a number.
+    // - For signed integers, the first bit (MSB) indicates the sign:
+    //     0 = positive → convert bits to number as-is
+    //     1 = negative → use two's complement to get the negative value
+    //
+    getInt(start, length, signed) {
+        const bits = this.bits.slice(start, start + length);
 
-        for (let i = 0; i < len; i++) {
-            acc = acc << 1;
-            cp = Math.floor((start + i) / 6);
-            cx = this.bits[cp];
-            cs = 5 - ((start + i) % 6);
-            c0 = (cx >> cs) & 1;
-            // if signed value and first bit is 1, pad with 1's
-            if (i === 0 && signed && c0) {
-                acc = ~acc;
-            }
-            acc |= c0;
+        const negative = (signed && bits[0] === 1);
+        if (negative) {
+            //two's complement: invert bits, convert to number, add 1, negate
+            const inverted = bitwise.bits.not(bits);
+            return -(this.bitsToNumber(inverted) + 1);
         }
 
-        return acc;
+        return this.bitsToNumber(bits);
     }
 
-    // Extract a boolean (single bit) from payload
+    // Extract a boolean (single bit) from the bit array
     getBool(start) {
-        const cp = Math.floor(start / 6);
-        const cs = 5 - (start % 6);
-        return ((this.bits[cp] >> cs) & 1) === 1;
+        return (this.bits[start] === 1);
     }
 
-    // Extract a string from payload [1st bits is index 0]
-    getStr(start, len) {
-        // If requested string exceeds available data, truncate to what's available (aligned to 6-bit boundary)
-        if (this.bits.length < (start + len) / 6) {
-            len = Math.floor(((this.bits.length - start / 6) / 6) * 6) * 6;
+    // Extract a text string from the bit array
+    getStr(start, length) {
+        
+        // truncate to available data, aligned to 6-bit boundary
+        if (this.bits.length < start + length) {
+            length = Math.floor((this.bits.length - start) / 6) * 6;
         }
 
-        // messages in the wild sometimes produce a negative len which will cause a buffer range error
-        if (len < 0) return '';
+        // messages in the wild sometimes produce a negative len
+        if (length < 0) return '';
 
-        const bytes = new Uint8Array(len / 6);
-        let cp, cx, cs, c0;
-        let acc = 0;
-        let k = 0;
-        let i = 0;
+        const bytes = new Uint8Array(length / 6);
+        let count = 0;
 
-        while (i < len) {
-            acc = 0;
-            for (let j = 0; j < 6; j++) {
-                acc = acc << 1;
-                cp = Math.floor((start + i) / 6);
-                cx = this.bits[cp];
-                cs = 5 - ((start + i) % 6);
-                c0 = (cx >> cs) & 1;
-                acc |= c0;
-                i++;
+        for (let i = 0; i < length; i += 6) {
+            const charBits = this.bits.slice(start + i, start + i + 6);
+            let charCode = this.bitsToNumber(charBits);
+
+            // Map 6-bit AIS character code to ASCII character code:
+            //   AIS 0-31  → ASCII 64-95 - add 64 to get the ASCII value
+            //   AIS 32-63 → ASCII 32-63 - already valid ASCII, no change needed
+            if (charCode < 32) {
+                charCode += 64;
             }
-            bytes[k] = acc;
-            if (acc < 0x20) {
-                bytes[k] += 0x40;
-            } else {
-                bytes[k] = acc;
-            }
-            if (bytes[k] === 0x40) break; // name end with '@'
-            k++;
+
+            // 64 is '@' which marks the end of name/text
+            if (charCode === 64) break;
+            
+            bytes[count] = charCode;
+            count++;
         }
 
-        return textDecoder.decode(bytes.subarray(0, k));
+        return textDecoder.decode(bytes.subarray(0, count));
+    }
+
+    // Convert an array of bits (0s and 1s) to an unsigned integer ([1, 0, 1] => 5)
+    bitsToNumber(bits) {
+        let result = 0;
+        for (let i = 0; i < bits.length; i++) {
+            result = result * 2 + bits[i];
+        }
+        return result;
     }
 }
