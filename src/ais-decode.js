@@ -14,10 +14,10 @@ const enableLogging = false;
 const textEncoder = new TextEncoder();
 
 export const defaultOptions = {
-    bypassClean: false,
-    propertyNames: null,
-    qualityCheck: false,
-    quality: {
+    cleanDecoded: false,     // Delete encoded undefined variables (i.e. sog will be undefined vs 102.3).
+    propertyNames: null,     // Map vessel properties names to custom property names.
+    qualityCheck: false,     // Perform additional data integrity checks according to `qualityOptions`.
+    qualityOptions: {
         requiredDynamic: 2,  // Number of required consecutive messages with position for an mmsi before accepting.
         requiredStatic: 1,   // Number of required consecutive messages with static information for an mmsi before accepting.
         maxDistanceNm: 1     // Maximum distance in nautical miles between consecutive position reports within the distance timeout.
@@ -27,7 +27,7 @@ export const defaultOptions = {
 export default class AisDecode {
     constructor(options) {
         this.options = {...defaultOptions, ...options};
-        configureQuality(this.options.quality);
+        configureQuality(this.options.qualityOptions);
     }
     
     parse(input) {
@@ -436,9 +436,9 @@ export default class AisDecode {
         return (Math.abs(lon) <= 180 && Math.abs(lat) <= 90);
     }
 
-    // Apply encoded undefined values to the decoded object
+    // Delete encoded undefined variables (i.e. sog will be undefined vs 102.3)
     _cleanDecoded(result) {
-        if (this.options.bypassClean) return;
+        if (!this.options.cleanDecoded) return;
 
         if (result.sog === 102.3) {
             delete result.sog;
