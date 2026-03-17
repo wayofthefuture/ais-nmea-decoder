@@ -26,19 +26,18 @@ export const defaultOptions = {
 let globalOptions = {...defaultOptions};
 configureQuality(globalOptions.quality);
 
-
 export default class AisDecode {
     static configure(options) {
         globalOptions = {...defaultOptions, ...options};
         configureQuality(globalOptions.quality);
     }
 
-    constructor(input, session) {
+    constructor(input) {
         this.options = globalOptions;
 
         try {
-            const parts = this._getMessageParts(input);
-            const payload = this._parseMessage(parts, session);
+            const metadata = this._getMessageMetadata(input);
+            const payload = this._parseMessage(metadata);
             if (!payload) return;
 
             this._decodeMessage(payload, input);
@@ -52,7 +51,7 @@ export default class AisDecode {
         this._mapProperties();
     }
 
-    _getMessageParts(input) {
+    _getMessageMetadata(input) {
         if (typeof input !== 'string') {
             throw new Error('AisDecode: Sentence is not of type string.');
         }
@@ -69,92 +68,70 @@ export default class AisDecode {
 
         // split nmea message !AIVDM,1,1,,B,B69>7mh0?J<:>05B0`0e;wq2PHI8,0*3D'
         const parts = input.split(',');
-
         if (parts.length !== 7) {
             throw new Error('AisDecode: Sentence contains invalid number of parts.');
         }
+        
+        let [messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload] = parts;
 
         // AIVDM = standard ais message, AIVDO = own vessel through pilot plug
-        if (parts[0] !== '!AIVDM' && parts[0] !== '!AIVDO') {
-            throw new Error('AisDecode: Invalid message prefix.');
+        if (messagePrefix !== '!AIVDM' && messagePrefix !== '!AIVDO') {
+            throw new Error('AisDecode: Invalid message prefix: ' + messagePrefix);
         }
 
-        // positive total number of fragments
-        if (Number(parts[1]) === 0) {
-            throw new Error('AisDecode: Invalid fragment count.');
+        if (!isNumeric(totalFragments)) {
+            throw new Error('AisDecode: Invalid total fragment count.');
         }
 
-        return parts;
+        if (!isNumeric(currentFragment)) {
+            throw new Error('AisDecode: Invalid fragment number.');
+        }
+        
+        if (!rawPayload.trim().length) {
+            throw new Error('AisDecode: Payload is empty.');
+        }
+
+        totalFragments = +totalFragments;
+        currentFragment = +currentFragment;
+        
+        return {messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload};
     }
     
     // Parse message fragments into a session object and return the encoded payload when all fragments have been received
-    _parseMessage(parts, session) {
-        const totalFragments = Number(parts[1]);
-        const channel = parts[4];
-        const rawPayload = parts[5];
+    _parseMessage(metadata) {
+        const {messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload} = metadata;
 
         this.channel = channel;
 
+        // one-part message
         if (totalFragments === 1) {
             return textEncoder.encode(rawPayload);
         }
-
-        // parse multi-fragment message
-        const messageType = parts[0];
-        const currentFragment = Number(parts[2]);
-        const sequenceId = parts[3].length > 0 ? Number(parts[3]) : NaN;
-
-        const valid = this._validateFragment(session, messageType, currentFragment, sequenceId);
-        if (!valid) return undefined;
-
-        session[currentFragment] = {rawPayload};
-
-        // store metadata once so that subsequent fragments can be validated by checking for the same metadata
-        if (currentFragment === 1) {
-            session.messageType = messageType;
-            session.totalFragments = totalFragments;
-            session.sequenceId = sequenceId;
+        if (totalFragments !== 2) {
+            throw new Error('AisDecode: Invalid total fragment count.');
         }
-        
-        if (currentFragment < totalFragments) {
+
+        // parse two-part message - store metadata for validation - always overwrite session on new two-part sequence
+        if (currentFragment === 1) {
+            this.session = metadata;
             return undefined;
         }
-
-        return this._combinePayloads(session);
-    }
-
-    _validateFragment(session, messageType, currentFragment, sequenceId) {
-        if (!session) {
-            throw new Error('AisDecode: A session object is required to maintain state for decoding multi-fragment AIS messages.');
+        if (currentFragment !== 2) {
+            throw new Error('AisDecode: Invalid fragment number for two-part message.');
         }
 
-        if (currentFragment <= 1) {
-            return true;
+        if (!this.session) {
+            throw new Error('AisDecode: Part 1 session missing from received 2nd part message.');
+        }
+        if (this.session.messagePrefix !== messagePrefix) {
+            throw new Error('AisDecode: Part 2 message does not match part 1 session message prefix.');
+        }
+        if (this.session.sequenceId !== sequenceId) {
+            throw new Error('AisDecode: Part 2 message sequence id does not match part 1 session sequence id.');
         }
 
-        if (messageType !== session.messageType) {
-            throw new Error('AisDecode: Sentence does not match messageType of current session.');
-        }
-
-        if (session[currentFragment - 1] === undefined) {
-            throw new Error('AisDecode: Session is missing prior fragment, cannot parse partial AIS message.');
-        }
-
-        if (session.sequenceId !== sequenceId) {
-            throw new Error('AisDecode: Session IDs do not match. Cannot reconstruct AIS message.');
-        }
-
-        return true;
-    }
-
-    _combinePayloads(session) {
-        const payloads = [];
-
-        for (let i = 1; i <= session.totalFragments; ++i) {
-            payloads.push(session[i].rawPayload);
-        }
-
-        return textEncoder.encode(payloads.join(''));
+        // encode combined part 1 and part 2 message payloads
+        return textEncoder.encode(this.session.rawPayload + rawPayload);
     }
 
     _decodeMessage(payload, input) {
@@ -473,4 +450,8 @@ export default class AisDecode {
     getEriType(eri) {
         return ERI_TYPE[eri] ?? eri;
     }
+}
+
+function isNumeric(val) {
+    return (!isNaN(parseFloat(val)) && isFinite(val));  //should return true if string number or actual number, i.e. '5' or 5
 }
