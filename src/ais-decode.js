@@ -161,10 +161,9 @@ export default class AisDecode {
     _decodeMessage(result, input) {
         const bits = new PayloadBits(result.payload);
 
-        result.mtype  = bits.getInt(0,6);
-        result.repeat = bits.getInt(6,2);
-        result.immsi  = bits.getInt(8,30);
-        result.mmsi   = String(result.immsi).padStart(9, '0');
+        result.mtype  = bits.getInt(0, 6);
+        result.repeat = bits.getInt(6, 2);
+        result.mmsi   = bits.getInt(8, 30);
 
         switch (result.mtype) {
             case 1:
