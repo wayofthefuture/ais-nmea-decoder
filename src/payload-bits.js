@@ -25,10 +25,10 @@ export default class PayloadBits {
 
             // check invalid ASCII ranges outside of 48-87 and 96-119
             if (code < 48 || code > 119) {
-                throw new Error('AisDecode: Payload contains invalid character.');
+                throw new Error('Payload contains invalid character.');
             }
             if (code > 87 && code < 96) {
-                throw new Error('AisDecode: Payload contains invalid character.');
+                throw new Error('Payload contains invalid character.');
             }
 
             // Each character represents six bits of data. To recover the six bits, subtract 48

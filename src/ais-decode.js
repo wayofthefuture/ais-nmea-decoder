@@ -50,42 +50,42 @@ export default class AisDecode {
 
     _getMessageData(input) {
         if (typeof input !== 'string') {
-            throw new Error('AisDecode: Sentence is not of type string.');
+            throw new Error('Sentence is not of type string.');
         }
 
         input = input.trim();
 
         if (input.length === 0) {
-            throw new Error('AisDecode: Sentence is empty or spaces.');
+            throw new Error('Sentence is empty or spaces.');
         }
 
         if (!this._validateChecksum(input)) {
-            throw new Error('AisDecode: Sentence checksum is invalid.');
+            throw new Error('Sentence checksum is invalid.');
         }
 
         // split nmea message !AIVDM,1,1,,B,B69>7mh0?J<:>05B0`0e;wq2PHI8,0*3D'
         const parts = input.split(',');
         if (parts.length !== 7) {
-            throw new Error('AisDecode: Sentence contains invalid number of parts.');
+            throw new Error('Sentence contains invalid number of parts.');
         }
         
         let [messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload] = parts;
 
         // AIVDM = standard ais message, AIVDO = own vessel through pilot plug
         if (messagePrefix !== '!AIVDM' && messagePrefix !== '!AIVDO') {
-            throw new Error('AisDecode: Invalid message prefix: ' + messagePrefix);
+            throw new Error('Invalid message prefix: ' + messagePrefix);
         }
 
         if (!isNumeric(totalFragments)) {
-            throw new Error('AisDecode: Invalid total fragment count.');
+            throw new Error('Invalid total fragment count.');
         }
 
         if (!isNumeric(currentFragment)) {
-            throw new Error('AisDecode: Invalid fragment number.');
+            throw new Error('Invalid fragment number.');
         }
         
         if (!rawPayload.trim().length) {
-            throw new Error('AisDecode: Payload is empty.');
+            throw new Error('Payload is empty.');
         }
 
         totalFragments = +totalFragments;
@@ -106,32 +106,56 @@ export default class AisDecode {
             return result;
         }
         if (totalFragments !== 2) {
-            throw new Error('AisDecode: Invalid total fragment count.');
+            throw new Error('Invalid total fragment count.');
         }
 
         // parse two-part message - store data for validation - always overwrite session on new two-part sequence
         if (currentFragment === 1) {
             this.session = data;
+            this.session.receive = Date.now();
             result.pending = true;
             return result;
         }
         if (currentFragment !== 2) {
-            throw new Error('AisDecode: Invalid fragment number for two-part message.');
+            throw new Error('Invalid fragment number for two-part message.');
         }
 
-        if (!this.session) {
-            throw new Error('AisDecode: Part 1 session missing from received 2nd part message.');
-        }
-        if (this.session.messagePrefix !== messagePrefix) {
-            throw new Error('AisDecode: Part 2 message does not match part 1 session message prefix.');
-        }
-        if (this.session.sequenceId !== sequenceId) {
-            throw new Error('AisDecode: Part 2 message sequence id does not match part 1 session sequence id.');
+        const error = this._validateTwoPart(this.session, data);
+        if (error) {
+            this.session = undefined;
+            throw new Error(error);
         }
 
         // encode combined part 1 and part 2 message payloads
         result.payload = textEncoder.encode(this.session.rawPayload + rawPayload);
+        this.session = undefined;
         return result;
+    }
+
+    // Validate a two-part message (type 5, 19) and ensure that parts from different vessels aren't mis-matched
+    _validateTwoPart(session, data) {
+        if (!session) {
+            return 'Part 1 missing from two-part message.';
+        }
+
+        // implement a timeout since we have no absolute way to determine if the 2nd message pairs with the 1st
+        if (Date.now() - session.receive > 3_000) {
+            return 'Part 2 message is too old relative to part 1.';
+        }
+
+        if (session.messagePrefix !== data.messagePrefix) {
+            return 'Part 2 message does not match part 1 message prefix.';
+        }
+
+        if (session.sequenceId !== data.sequenceId) {
+            return 'Part 2 message sequence id does not match part 1 sequence id.';
+        }
+
+        if (session.channel !== data.channel) {
+            return 'Part 2 message channel does not match part 1 channel.';
+        }
+
+        return false;
     }
 
     _decodeMessage(result, input) {
@@ -140,7 +164,7 @@ export default class AisDecode {
         result.mtype  = bits.getInt(0,6);
         result.repeat = bits.getInt(6,2);
         result.immsi  = bits.getInt(8,30);
-        result.mmsi   = ('000000000' + result.immsi).slice(-9);
+        result.mmsi   = String(result.immsi).padStart(9, '0');
 
         switch (result.mtype) {
             case 1:
@@ -178,7 +202,7 @@ export default class AisDecode {
                 break;
             default:
                 if (enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, this.getAisType(result.mtype), result.mmsi, input);
-                break;
+                throw new Error('Invalid message type: ' + result.mtype);
         }
         
         return result;
@@ -272,23 +296,32 @@ export default class AisDecode {
         res.wid = res.dimC + res.dimD;
     }
 
+    // Decode type 24 static data report which comes in multiple formats based on the specification.
+    // Note that `part` here is a message format (A/B) identifier rather than a message part number.
+    // Message format `B` also has two sub formats (mothership/dimensions)
     _decodeStaticDataReport(bits, res) {
         res.class = 'B';
         res.part = bits.getInt(38, 2);
 
+        // Message format `A` starting at bit 40
         if (res.part === 0) {
             res.name = bits.getStr(40, 120).trim();
             return;
         }
 
+        // Message format `B` also starting at bit 40
         if (res.part === 1) {
             res.type = bits.getInt(40, 8);
             res.sign = bits.getStr(90, 42).trim();
 
-            // 98 = auxiliary craft
-            if (Math.floor(res.immsi / 10000000) === 98) {
+            // Todo: According to [MMSI], an MMSI is associated with an auxiliary craft when it is of the form 98XXXYYYY,
+            //  where (1) the '98' in positions 1 and 2 is required to designate an auxiliary craft, (2) the digits XXX in
+            //  the 3, 4 and 5 positions are the MID (the three-digit country code as described in [ITU-MID]) and (3) YYYY
+            //  is any decimal literal from 0000 to 9999.
+            // Auxiliary craft or non-auxiliary craft - subformat for mothership when mmsi starts with 98 - starting at bit 132
+            if (res.mmsi.startsWith('98')) {
                 const mothership = bits.getInt(132, 30);
-                res.mothership = ('000000000' + mothership).slice(-9);
+                res.mothership = String(mothership).padStart(9, '0');
             } else {
                 res.dimA = bits.getInt(132, 9);
                 res.dimB = bits.getInt(141, 9);
