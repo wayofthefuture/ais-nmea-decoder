@@ -115,7 +115,7 @@ export default class PayloadBits {
             count++;
         }
 
-        return textDecoder.decode(bytes.subarray(0, count));
+        return textDecoder.decode(bytes.subarray(0, count)).trim();
     }
 
     // Convert an array of bits (0s and 1s) to an unsigned integer ([1, 0, 1] => 5)

@@ -228,7 +228,6 @@ export default class AisDecode {
 
     _decodeClassBPositionReport(bits, res) {
         res.class = 'B';
-        res.status = -1;  // Class B targets have no status.  Enforce res...
         res.repeat = bits.getInt(6,2);
         res.accuracy = bits.getInt(56, 1);
 
@@ -247,7 +246,6 @@ export default class AisDecode {
 
     _decodeExtendedClassBPositionReport(bits, res) {
         res.class = 'B';
-        res.status = -1;  // Class B targets have no status.  Enforce res...
 
         res.lon = bits.getLon(57);
         res.lat = bits.getLat(85);
@@ -260,7 +258,7 @@ export default class AisDecode {
         res.hdg = bits.getInt(124, 9);
         res.utc = bits.getInt(133, 6);
 
-        res.name = bits.getStr(143,120).trim();
+        res.name = bits.getStr(143,120);
         res.type = bits.getInt(263,8);
 
         res.dimA = bits.getInt(271, 9);
@@ -276,8 +274,8 @@ export default class AisDecode {
 
         res.ver   = bits.getInt(38,2);
         res.imo   = bits.getInt(40, 30);
-        res.sign  = bits.getStr(70, 42).trim();
-        res.name  = bits.getStr(112, 120).trim();
+        res.sign  = bits.getStr(70, 42);
+        res.name  = bits.getStr(112, 120);
         res.type  = bits.getInt(232, 8);
 
         res.dimA  = bits.getInt(240, 9);
@@ -290,7 +288,7 @@ export default class AisDecode {
         res.etaHr = bits.getInt(283, 5);
         res.etaMn = bits.getInt(288, 6);
         res.draft = bits.getInt(294, 8) / 10;
-        res.dest  = bits.getStr(302, 120).trim();
+        res.dest  = bits.getStr(302, 120);
 
         res.len = res.dimA + res.dimB;
         res.wid = res.dimC + res.dimD;
@@ -303,33 +301,30 @@ export default class AisDecode {
         res.class = 'B';
         res.part = bits.getInt(38, 2);
 
-        // Message format `A` starting at bit 40
+        // Message format `A`
         if (res.part === 0) {
-            res.name = bits.getStr(40, 120).trim();
+            res.name = bits.getStr(40, 120);
             return;
         }
 
-        // Message format `B` also starting at bit 40
+        // Message format `B` - auxilary craft - an MMSI is associated with an auxiliary craft when it is of the form 98XXXYYYY
+        if (res.part === 1 && String(res.mmsi).length === 9 && String(res.mmsi).startsWith('98')) {
+            res.type = bits.getInt(40, 8);
+            res.sign = bits.getStr(90, 42);
+            res.mothership = bits.getInt(132, 30);
+            return;
+        }
+
+        // Message format `B` - non-auxilary craft
         if (res.part === 1) {
             res.type = bits.getInt(40, 8);
-            res.sign = bits.getStr(90, 42).trim();
-
-            // Todo: According to [MMSI], an MMSI is associated with an auxiliary craft when it is of the form 98XXXYYYY,
-            //  where (1) the '98' in positions 1 and 2 is required to designate an auxiliary craft, (2) the digits XXX in
-            //  the 3, 4 and 5 positions are the MID (the three-digit country code as described in [ITU-MID]) and (3) YYYY
-            //  is any decimal literal from 0000 to 9999.
-            // Auxiliary craft or non-auxiliary craft - subformat for mothership when mmsi starts with 98 - starting at bit 132
-            if (res.mmsi.startsWith('98')) {
-                const mothership = bits.getInt(132, 30);
-                res.mothership = String(mothership).padStart(9, '0');
-            } else {
-                res.dimA = bits.getInt(132, 9);
-                res.dimB = bits.getInt(141, 9);
-                res.dimC = bits.getInt(150, 6);
-                res.dimD = bits.getInt(156, 6);
-                res.len  = res.dimA + res.dimB;
-                res.wid  = res.dimC + res.dimD;
-            }
+            res.sign = bits.getStr(90, 42);
+            res.dimA = bits.getInt(132, 9);
+            res.dimB = bits.getInt(141, 9);
+            res.dimC = bits.getInt(150, 6);
+            res.dimD = bits.getInt(156, 6);
+            res.len  = res.dimA + res.dimB;
+            res.wid  = res.dimC + res.dimD;
             return;
         }
 
@@ -364,7 +359,7 @@ export default class AisDecode {
     _decodeAidToNavigation(bits, res) {
         res.class = '-';
         res.type = bits.getInt(38, 5);
-        res.name = bits.getStr(43, 120).trim();
+        res.name = bits.getStr(43, 120);
 
         res.lon = bits.getLon(164);
         res.lat = bits.getLat(192);
@@ -385,7 +380,7 @@ export default class AisDecode {
 
         const bitLen = bits.getLength();
         const txtLen = Math.floor(((bitLen - 272 / 6) / 6) * 6) * 6;
-        res.text = bits.getStr(272, txtLen).trim();
+        res.text = bits.getStr(272, txtLen);
     }
 
     _decodeTextMessage(bits, res) {
@@ -397,7 +392,7 @@ export default class AisDecode {
         }
 
         const txtLen = Math.floor(((bitLen - 40 / 6) / 6) * 6) * 6;
-        res.text = bits.getStr(40, txtLen).trim();
+        res.text = bits.getStr(40, txtLen);
     }
 
     _decodeLongRangeBroadcast(bits, res) {
