@@ -15,7 +15,7 @@ export function configureQuality(options = {}) {
     maxDistanceNm = options.maxDistanceNm ?? maxDistanceNm;
 }
 
-export function qualityCheck(result) {
+export function checkQuality(result) {
     if (typeof result.lon === 'number') {
         checkDynamicResult(result);
     } else {

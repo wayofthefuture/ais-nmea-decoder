@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-import {qualityCheck, configureQuality} from './quality-check.js';
+import {checkQuality, configureQuality} from './check-quality.js';
 import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants.js';
 import PayloadBits from './payload-bits.js';
 
@@ -23,34 +23,32 @@ export const defaultOptions = {
         maxDistanceNm: 1     // Maximum distance in nautical miles between consecutive position reports within the distance timeout.
     }
 };
-let globalOptions = {...defaultOptions};
-configureQuality(globalOptions.quality);
 
 export default class AisDecode {
-    static configure(options) {
-        globalOptions = {...defaultOptions, ...options};
-        configureQuality(globalOptions.quality);
+    constructor(options) {
+        this.options = {...defaultOptions, ...options};
+        configureQuality(this.options.quality);
     }
-
-    constructor(input) {
-        this.options = globalOptions;
-
+    
+    parse(input) {
         try {
-            const metadata = this._getMessageMetadata(input);
-            const result = this._parseMessage(metadata);
-            if (result.pending) return;
+            const data = this._getMessageData(input);
+            const result = this._parseMessage(data);
+            if (result.pending) return result;
 
             this._decodeMessage(result, input);
-            if (this.options.qualityCheck) qualityCheck();
+            if (this.options.qualityCheck) checkQuality();
+
+            this._cleanDecoded(result);
+            this._mapProperties(result);
+
+            return result;
         } catch (error) {
             return {error: error.message};
         }
-
-        this._cleanDecoded();
-        this._mapProperties();
     }
 
-    _getMessageMetadata(input) {
+    _getMessageData(input) {
         if (typeof input !== 'string') {
             throw new Error('AisDecode: Sentence is not of type string.');
         }
@@ -97,8 +95,8 @@ export default class AisDecode {
     }
     
     // Parse message fragments into a session object and return the encoded payload when all fragments have been received
-    _parseMessage(metadata) {
-        const {messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload} = metadata;
+    _parseMessage(data) {
+        const {messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload} = data;
 
         const result = {channel};
 
@@ -111,9 +109,9 @@ export default class AisDecode {
             throw new Error('AisDecode: Invalid total fragment count.');
         }
 
-        // parse two-part message - store metadata for validation - always overwrite session on new two-part sequence
+        // parse two-part message - store data for validation - always overwrite session on new two-part sequence
         if (currentFragment === 1) {
-            this.session = metadata;
+            this.session = data;
             result.pending = true;
             return result;
         }

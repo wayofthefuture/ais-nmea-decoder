@@ -1,5 +1,5 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
-import {qualityCheck, checkDynamicResult, checkStaticResult, distanceInNm, configureQuality} from './quality-check.js';
+import {checkQuality, checkDynamicResult, checkStaticResult, distanceInNm, configureQuality} from './check-quality.js';
 import {defaultOptions} from './ais-decode.js';
 
 describe('quality-check', () => {
@@ -176,19 +176,19 @@ describe('quality-check', () => {
         });
     });
 
-    describe('qualityCheck', () => {
+    describe('checkQuality', () => {
         it('should route to dynamic check when result has lon', () => {
-            expect(() => qualityCheck({mmsi: '300000001', lon: 1.5, lat: 1}))
+            expect(() => checkQuality({mmsi: '300000001', lon: 1.5, lat: 1}))
                 .toThrow('Skipping initial dynamic transmission #1');
         });
 
         it('should route to static check when result has no lon', () => {
-            expect(() => qualityCheck({mmsi: '300000001', name: 'VESSEL'}))
+            expect(() => checkQuality({mmsi: '300000001', name: 'VESSEL'}))
                 .toThrow('Skipping initial static transmission #1');
         });
 
         it('should route to static check when lon is not a number', () => {
-            expect(() => qualityCheck({mmsi: '300000002', lon: undefined}))
+            expect(() => checkQuality({mmsi: '300000002', lon: undefined}))
                 .toThrow('Skipping initial static transmission #1');
         });
     });
