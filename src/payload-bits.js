@@ -119,8 +119,7 @@ export default class PayloadBits {
             // 64 is '@' which marks the end of name/text
             if (charCode === 64) break;
             
-            bytes[count] = charCode;
-            count++;
+            bytes[count++] = charCode;
         }
 
         return textDecoder.decode(bytes.subarray(0, count)).trim();

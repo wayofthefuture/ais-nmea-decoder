@@ -49,8 +49,7 @@ export function checkDynamicResult(result) {
     }
 
     // Update count and check if we've received enough initial transmissions
-    prev.count++;
-    if (prev.count <= requiredDynamic) {
+    if (++prev.count <= requiredDynamic) {
         prev.receive = now;
         prev.lon = lon;
         prev.lat = lat;
@@ -98,8 +97,7 @@ export function checkStaticResult(result) {
     }
 
     // Update count and check if we've received enough initial transmissions
-    prev.count++;
-    if (prev.count <= requiredStatic) {
+    if (++prev.count <= requiredStatic) {
         prev.receive = now;
         throw new Error(`Quality: Skipping initial static transmission #${prev.count}`);
     }
