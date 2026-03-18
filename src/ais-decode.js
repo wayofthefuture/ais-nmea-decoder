@@ -252,14 +252,12 @@ export default class AisDecode {
             throw new Error('Invalid longitude/latitude in Extended Class B position report');
         }
 
-        res.sog = bits.getInt(46, 10) / 10;
-        res.cog = bits.getInt(112, 12) / 10;
-        res.hdg = bits.getInt(124, 9);
-        res.utc = bits.getInt(133, 6);
-
+        res.sog  = bits.getInt(46, 10) / 10;
+        res.cog  = bits.getInt(112, 12) / 10;
+        res.hdg  = bits.getInt(124, 9);
+        res.utc  = bits.getInt(133, 6);
         res.name = bits.getStr(143,120);
         res.type = bits.getInt(263,8);
-
         res.dimA = bits.getInt(271, 9);
         res.dimB = bits.getInt(280, 9);
         res.dimC = bits.getInt(289, 6);
@@ -270,18 +268,15 @@ export default class AisDecode {
 
     _decodeStaticVoyageData(bits, res) {
         res.class = 'A';
-
         res.ver   = bits.getInt(38,2);
         res.imo   = bits.getInt(40, 30);
         res.sign  = bits.getStr(70, 42);
         res.name  = bits.getStr(112, 120);
         res.type  = bits.getInt(232, 8);
-
         res.dimA  = bits.getInt(240, 9);
         res.dimB  = bits.getInt(249, 9);
         res.dimC  = bits.getInt(258, 6);
         res.dimD  = bits.getInt(264, 6);
-
         res.etaMo = bits.getInt(274, 4);
         res.etaDy = bits.getInt(278, 5);
         res.etaHr = bits.getInt(283, 5);
@@ -354,7 +349,7 @@ export default class AisDecode {
 
     _decodeAidToNavigation(bits, res) {
         res.type = bits.getInt(38, 5);
-        res.name = bits.getStr(43, 120);
+        res.name = bits.getStr(43, 120) + bits.getStr(272);  // name + name extension
 
         res.lon = bits.getLon(164);
         res.lat = bits.getLat(192);
@@ -366,25 +361,15 @@ export default class AisDecode {
         res.dimB = bits.getInt(228, 9);
         res.dimC = bits.getInt(237, 6);
         res.dimD = bits.getInt(243, 6);
+        res.utc  = bits.getInt(253, 6);
+
         res.len  = res.dimA + res.dimB;
         res.wid  = res.dimC + res.dimD;
-
-        res.utc = bits.getInt(253, 6);
-        res.offpos = bits.getInt(259, 1);
-        res.virtual = bits.getInt(269, 1);
-
-        const textLen = Math.floor((bits.getLength() - 272) / 6) * 6;
-        res.text = bits.getStr(272, textLen);
     }
 
     _decodeTextMessage(bits, res) {
-        const textLen = Math.floor((bits.getLength() - 40) / 6) * 6;
-        const text = bits.getStr(40, textLen);
-
-        if (!text) {
-            throw new Error('Text message is empty');
-        }
-
+        const text = bits.getStr(40);
+        if (!text) throw new Error('Text message is empty');
         res.text = text;
     }
 

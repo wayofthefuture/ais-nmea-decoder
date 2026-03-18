@@ -128,29 +128,23 @@ const testCases = {
         lon: 144.60521666666668,
         lat: -38.16343333333333
     },
-    msg21: { // aid of navigation
+    msg21: { // aid to navigation
         raw: '!AIVDM,1,1,,B,ENlt;J@aSqP0000000000000000E;WUdm7Mu800003vP10,4*46',
         mtype: 21,
         mmsi: 995036009,
         name: 'SG3',
         type: 1,
         lon: 144.88636666666667,
-        lat: -38.03993166666667,
-        text: "",
-        virtual: 1,
-        offpos: 0
+        lat: -38.03993166666667
     },
-    msg21a: { // aid of navigation with extra text
+    msg21a: { // aid to navigation with name extension
         raw: '!AIVDM,1,1,,B,EvjO`>C2qHtq@8:W:0h9PW@1Pb0Paq`g;STu`10888N00313p12H31@hi@,4*0E',
         mtype: 21,
         mmsi: 992471097,
-        name: 'E2192 PUNTA SAN CATA',
+        name: 'E2192 PUNTA SAN CATALDO DI LECCE',  //combined name + name extension
         type: 6,
         lon: 18.306638333333332,
-        lat: 40.390795,
-        text: 'LDO DI LECCE',
-        virtual: 0,
-        offpos: 0
+        lat: 40.390795
     },
     msg9: { // sar aircraft
         raw: '!AIVDM,1,1,,B,900048wwTiJamA6Eu>B7Pd@20<6M,0*66',

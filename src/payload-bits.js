@@ -84,12 +84,18 @@ export default class PayloadBits {
     }
 
     // Extract a text string from the bit array
+    // @param length - number of bits to extract - if not provided, extracts to end of array
     getStr(start, length) {
         if (start >= this.bits.length) {
             return '';
         }
 
-        // truncate to available data, aligned to 6-bit boundary
+        // if no length specified, use remaining bits
+        if (length === undefined) {
+            length = this.bits.length - start;
+        }
+
+        // default to remaining bits, aligned to 6-bit boundary
         if (start + length > this.bits.length) {
             length = Math.floor((this.bits.length - start) / 6) * 6;
         }
@@ -110,7 +116,6 @@ export default class PayloadBits {
             if (charCode < 32) {
                 charCode += 64;
             }
-
             // 64 is '@' which marks the end of name/text
             if (charCode === 64) break;
             
