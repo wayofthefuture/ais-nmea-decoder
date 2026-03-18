@@ -24,7 +24,7 @@ export const defaultOptions = {
     }
 };
 
-export class AisDecode {
+export class AisDecoder {
     constructor(options) {
         this.options = {...defaultOptions, ...options};
         configureQuality(this.options.qualityOptions);

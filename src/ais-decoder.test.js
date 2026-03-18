@@ -7,7 +7,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 */
 
 import {describe, it, expect} from 'vitest';
-import {AisDecode} from './ais-decode.js';
+import {AisDecoder} from './ais-decoder.js';
 
 const testCases = {
     msg24a: { // class B static info
@@ -208,7 +208,7 @@ const testCases = {
     }
 };
 
-const decoder = new AisDecode();
+const decoder = new AisDecoder();
 
 for (const [name, testCase] of Object.entries(testCases)) {
     describe(name, () => {
@@ -240,7 +240,7 @@ for (const [name, testCase] of Object.entries(testCases)) {
 
 describe('mapProperties', () => {
     it('should map properties according to the propertyNames', () => {
-        const decoder = new AisDecode({
+        const decoder = new AisDecoder({
             propertyNames: [
                 ['mmsi', 'vesselId'],
                 ['sog', 'speedOverGround'],
@@ -258,7 +258,7 @@ describe('mapProperties', () => {
     });
 
     it('should skip mapping for undefined properties', () => {
-        const decoder = new AisDecode({
+        const decoder = new AisDecoder({
             propertyNames: [
                 ['mmsi', 'vesselId'],
                 ['nonExistent', 'renamed']

@@ -20,9 +20,9 @@ npm install ais-nmea-decoder
 ## Usage
 
 ```js
-import {AisDecode} from 'ais-nmea-decoder';
+import {AisDecoder} from 'ais-nmea-decoder';
 
-const decoder = new AisDecode();
+const decoder = new AisDecoder();
 const result = decoder.parse('!AIVDM,1,1,,B,15MqhT0026:Otl8EoR4<H?vL0<1h,0*2C');
 
 if (result.error) return;
@@ -35,7 +35,7 @@ console.log(result);
 ## Options
 
 ```js
-const decoder = new AisDecode({
+const decoder = new AisDecoder({
     cleanDecoded: true,      // (default false) remove undefined/invalid fields from result
     propertyNames: [         // (default null) rename default property names to custom property names
         ['sog', 'speed'],

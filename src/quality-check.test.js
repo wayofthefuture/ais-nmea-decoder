@@ -1,6 +1,6 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
 import {checkQuality, checkDynamicResult, checkStaticResult, distanceInNm, configureQuality} from './check-quality.js';
-import {defaultOptions} from './ais-decode.js';
+import {defaultOptions} from './ais-decoder.js';
 
 describe('quality-check', () => {
     configureQuality(defaultOptions.qualityOptions);
