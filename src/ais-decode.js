@@ -15,7 +15,7 @@ const textEncoder = new TextEncoder();
 
 export const defaultOptions = {
     cleanDecoded: false,     // Delete encoded undefined variables (i.e. sog will be undefined vs 102.3).
-    propertyNames: null,     // Map vessel properties names to custom property names.
+    propertyNames: null,     // Rename default property names to custom property names.
     qualityCheck: false,     // Perform additional data integrity checks according to `qualityOptions`.
     qualityOptions: {
         requiredDynamic: 2,  // Number of required consecutive messages with position for an mmsi before accepting.
