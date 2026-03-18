@@ -161,9 +161,9 @@ describe('PayloadBits', () => {
         });
 
         it('should trim leading and trailing spaces but preserve internal spaces', () => {
-            // ' TEST ' : P=space(32), D=T(20), 5=E(5), P=space(32), C=S(19), D=T(20), P=space(32)
-            const bits = new PayloadBits(textEncoder.encode('PD5CDP'));
-            expect(bits.getStr(0, 42)).toBe('TEST');
+            // ' TE ST ' : P=space(32), D=T(20), 5=E(5), P=space(32), C=S(19), D=T(20), P=space(32)
+            const bits = new PayloadBits(textEncoder.encode('PD5PCDP'));
+            expect(bits.getStr(0, 42)).toBe('TE ST');
         });
 
         it('should truncate to available data aligned to 6-bit boundary', () => {
