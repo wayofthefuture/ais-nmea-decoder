@@ -47,7 +47,7 @@ export default class PayloadBits {
     }
 
     getLength() {
-        return this.bits.length / 6;
+        return this.bits.length;
     }
 
     getLon(start) {
@@ -85,14 +85,17 @@ export default class PayloadBits {
 
     // Extract a text string from the bit array
     getStr(start, length) {
-        
+        if (start >= this.bits.length) {
+            return '';
+        }
+
         // truncate to available data, aligned to 6-bit boundary
-        if (this.bits.length < start + length) {
+        if (start + length > this.bits.length) {
             length = Math.floor((this.bits.length - start) / 6) * 6;
         }
 
         // messages in the wild sometimes produce a negative len
-        if (length < 0) return '';
+        if (length <= 0) return '';
 
         const bytes = new Uint8Array(length / 6);
         let count = 0;

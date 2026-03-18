@@ -53,9 +53,9 @@ describe('PayloadBits', () => {
     });
 
     describe('getLength', () => {
-        it('should return the number of 6-bit characters', () => {
+        it('should return the number of bits', () => {
             const bits = new PayloadBits(textEncoder.encode('D5CD'));
-            expect(bits.getLength()).toBe(4);
+            expect(bits.getLength()).toBe(24);
         });
     });
 

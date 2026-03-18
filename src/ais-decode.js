@@ -96,7 +96,7 @@ export default class AisDecode {
     
     // Parse message fragments into a session object and return the encoded payload when all fragments have been received
     _parseMessage(data) {
-        const {messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload} = data;
+        const {totalFragments, currentFragment, channel, rawPayload} = data;
 
         const result = {channel};
 
@@ -310,7 +310,7 @@ export default class AisDecode {
         if (res.part === 1 && String(res.mmsi).length === 9 && String(res.mmsi).startsWith('98')) {
             res.type = bits.getInt(40, 8);
             res.sign = bits.getStr(90, 42);
-            res.mothership = bits.getInt(132, 30);
+            res.mother = bits.getInt(132, 30);
             return;
         }
 
@@ -331,8 +331,6 @@ export default class AisDecode {
     }
 
     _decodeBaseStationReport(bits, res) {
-        res.class = '-';
-
         res.lon = bits.getLon(79);
         res.lat = bits.getLat(107);
         if (!this._validatePosition(res.lon, res.lat)) {
@@ -341,7 +339,6 @@ export default class AisDecode {
     }
 
     _decodeSarAircraftReport(bits, res) {
-        res.class = '-';
         res.alt = bits.getInt(38, 12);
 
         res.lon = bits.getLon(61);
@@ -356,7 +353,6 @@ export default class AisDecode {
     }
 
     _decodeAidToNavigation(bits, res) {
-        res.class = '-';
         res.type = bits.getInt(38, 5);
         res.name = bits.getStr(43, 120);
 
@@ -377,25 +373,22 @@ export default class AisDecode {
         res.offpos = bits.getInt(259, 1);
         res.virtual = bits.getInt(269, 1);
 
-        const bitLen = bits.getLength();
-        const txtLen = Math.floor(((bitLen - 272 / 6) / 6) * 6) * 6;
-        res.text = bits.getStr(272, txtLen);
+        const textLen = Math.floor((bits.getLength() - 272) / 6) * 6;
+        res.text = bits.getStr(272, textLen);
     }
 
     _decodeTextMessage(bits, res) {
-        res.class = '-';
+        const textLen = Math.floor((bits.getLength() - 40) / 6) * 6;
+        const text = bits.getStr(40, textLen);
 
-        const bitLen = bits.getLength();
-        if (bitLen <= 40 / 6) {
-            throw new Error('Text message is too short');
+        if (!text) {
+            throw new Error('Text message is empty');
         }
 
-        const txtLen = Math.floor(((bitLen - 40 / 6) / 6) * 6) * 6;
-        res.text = bits.getStr(40, txtLen);
+        res.text = text;
     }
 
     _decodeLongRangeBroadcast(bits, res) {
-        res.class = '-';
         res.nav = bits.getInt(40, 4);
 
         // lon/lat has different format than other messages
