@@ -3,7 +3,7 @@ import {checkQuality, checkDynamicResult, checkStaticResult, distanceInNm, confi
 import {defaultOptions} from './ais-decode.js';
 
 describe('quality-check', () => {
-    configureQuality(defaultOptions.quality);
+    configureQuality(defaultOptions.qualityOptions);
 
     describe('checkDynamicResult', () => {
         it('should throw if mmsi is missing', () => {

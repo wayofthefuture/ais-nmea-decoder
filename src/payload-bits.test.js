@@ -157,7 +157,13 @@ describe('PayloadBits', () => {
             // '0' char (ASCII 48) → 6-bit 0 → '@' (end marker), so digits start at 6-bit 32+
             // "P" = ASCII 80, 80-48=32, 6-bit value 32 → ASCII 32 = space
             const bits = new PayloadBits(textEncoder.encode('P'));
-            expect(bits.getStr(0, 6)).toBe(' ');
+            expect(bits.getStr(0, 6)).toBe('');
+        });
+
+        it('should trim leading and trailing spaces but preserve internal spaces', () => {
+            // ' TEST ' : P=space(32), D=T(20), 5=E(5), P=space(32), C=S(19), D=T(20), P=space(32)
+            const bits = new PayloadBits(textEncoder.encode('PD5CDP'));
+            expect(bits.getStr(0, 42)).toBe('TEST');
         });
 
         it('should truncate to available data aligned to 6-bit boundary', () => {
