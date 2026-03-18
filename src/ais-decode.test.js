@@ -216,27 +216,29 @@ const testCases = {
 
 const decoder = new AisDecode();
 
-function decode(testCase) {
-    if (Array.isArray(testCase.raw)) {
-        decoder.parse(testCase.raw[0]);
-        return decoder.parse(testCase.raw[1]);
-    }
-    return decoder.parse(testCase.raw);
-}
-
-for (const [name, props] of Object.entries(testCases)) {
+for (const [name, testCase] of Object.entries(testCases)) {
     describe(name, () => {
-        const decoded = decode(props);
+        let result;
+
+        //two-part message
+        if (Array.isArray(testCase.raw)) {
+            result = decoder.parse(testCase.raw[0]);
+            expect(result.error).toBeUndefined();
+            expect(result.pending).toBe(true);
+            result = decoder.parse(testCase.raw[1]);
+        } else {
+            result = decoder.parse(testCase.raw);
+        }
 
         it('should be valid', () => {
-            expect(decoded.error).toBeUndefined();
+            expect(result.error).toBeUndefined();
         });
 
-        for (const [field, value] of Object.entries(props)) {
+        for (const [field, value] of Object.entries(testCase)) {
             if (field === 'raw') continue;
 
             it(`should decode ${field} correctly`, () => {
-                expect(value).toBe(decoded[field]);
+                expect(value).toBe(result[field]);
             });
         }
     });
