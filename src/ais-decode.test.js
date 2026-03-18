@@ -7,7 +7,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 */
 
 import {describe, it, expect} from 'vitest';
-import AisDecode from './ais-decode.js';
+import {AisDecode} from './ais-decode.js';
 
 const testCases = {
     msg24a: { // class B static info
