@@ -1,0 +1,247 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body.article {
+  font-family: 'Inter', 'Roboto', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 300;
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+  line-height: 1.6;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#Menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  overflow-y: auto;
+  background-color: #252525;
+  border-right: 1px solid #3a3a3a;
+  padding: 16px;
+  z-index: 100;
+}
+
+#Menu .content {
+  margin-bottom: 8px;
+}
+
+#Menu a {
+  color: #7cb7ff;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+#Menu a:hover {
+  color: #aad4ff;
+  text-decoration: underline;
+}
+
+#Menu hr {
+  border: none;
+  border-top: 1px solid #3a3a3a;
+  margin: 12px 0;
+}
+
+#Menu img {
+  display: block;
+  margin: 0 auto 12px;
+}
+
+#toc {
+  font-size: 0.85rem;
+}
+
+#toctitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+#toc ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+#toc ul ul {
+  padding-left: 14px;
+}
+
+#toc li {
+  margin: 3px 0;
+}
+
+#header {
+  width: 100%;
+  padding: 24px 32px 24px 312px;
+  background-color: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+#header h1 {
+  color: #ffffff;
+  font-size: 1.8rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+#header .details {
+  color: #aaaaaa;
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+#header .details a {
+  color: #7cb7ff;
+}
+
+#content {
+  margin-left: 280px;
+  padding: 24px 32px;
+  max-width: 960px;
+  width: calc(100% - 280px);
+}
+
+#preamble {
+  margin-bottom: 24px;
+}
+
+h2, h3, h4, h5 {
+  color: #ffffff;
+  font-weight: 400;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+h2 { font-size: 1.5rem; border-bottom: 1px solid #3a3a3a; padding-bottom: 6px; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.1rem; }
+
+a {
+  color: #7cb7ff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: #aad4ff;
+}
+
+p {
+  margin: 0.6em 0;
+}
+
+table.tableblock {
+  border-collapse: collapse;
+  margin: 1em 0;
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+}
+
+table.tableblock th,
+table.tableblock td {
+  border: 1px solid #555;
+  padding: 6px 10px;
+}
+
+table.tableblock thead th {
+  background-color: #333;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+table.tableblock tbody tr:nth-child(even) {
+  background-color: #2f2f2f;
+}
+
+table.tableblock tbody tr:hover {
+  background-color: #383838;
+}
+
+code, pre, .literalblock pre, .listingblock pre {
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', monospace;
+  background-color: #2a2a2a;
+  color: #d4d4d4;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+}
+
+code {
+  padding: 1px 4px;
+  font-size: 0.9em;
+}
+
+pre {
+  padding: 12px;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+
+ul, ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+li {
+  margin: 0.2em 0;
+}
+
+.admonitionblock {
+  margin: 1em 0;
+  padding: 12px;
+  background-color: #2a2a2a;
+  border-left: 4px solid #7cb7ff;
+  border-radius: 4px;
+}
+
+.admonitionblock td.icon {
+  font-weight: 600;
+  color: #7cb7ff;
+  padding-right: 12px;
+  vertical-align: top;
+}
+
+.sidebarblock {
+  background-color: transparent;
+}
+
+/* Definition lists */
+dt {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+dd {
+  margin-left: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+img {
+  max-width: 100%;
+}
+
+#Menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+#Menu::-webkit-scrollbar-track {
+  background: #252525;
+}
+
+#Menu::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+#Menu::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
