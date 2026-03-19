@@ -106,7 +106,7 @@ body.article {
 #content {
   margin-left: 280px;
   padding: 24px 32px;
-  max-width: 960px;
+  max-width: 2000px;
   width: calc(100% - 280px);
 }
 
