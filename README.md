@@ -50,6 +50,8 @@ const decoder = new AisDecoder({
 });
 ```
 
-## License
+## Development
 
-Apache-2.0
+Any pull requests submitted to this project should be done in a clear and concise way that favors readability and performance. All lines of code should be covered by a test. Run `npm coverage` to view a coverage report locally at coverage/index.html.
+
+The AIS decoding guide can be viewed [here](https://wayofthefuture.github.io/ais-nmea-decoder/).
