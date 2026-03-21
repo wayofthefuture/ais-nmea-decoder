@@ -92,6 +92,8 @@ Every result includes these **common fields**:
 
 **Additional fields by message type:**
 
+Note: use the `propertyNames` option to rename default field names.
+
 | Field | Type | Description | Message Types |
 |-------|------|-------------|---------------|
 | `class` | string | Vessel class (`A` or `B`) | 1–3, 5, 18, 19, 24 |
