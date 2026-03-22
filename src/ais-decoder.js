@@ -392,7 +392,7 @@ export class AisDecoder {
         if (start !== 1) return false;
 
         const asterisk = sentence.indexOf('*');
-        if (asterisk === -1) return false;
+        if (asterisk <= start) return false;
 
         let checksum = 0;
         for (let i = start; i < asterisk; i++) {
