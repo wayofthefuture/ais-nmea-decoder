@@ -61,6 +61,7 @@ function parseLine(line) {
 
 ```js
 const decoder = new AisDecoder({
+    enableLogging: false,    // (default false) log unknown message types to console
     cleanDecoded: true,      // (default false) remove undefined/invalid fields from result
     propertyNames: [         // (default null) rename default property names to custom names
         ['sog', 'speed'],

@@ -6,14 +6,14 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-import {checkQuality, configureQuality} from './check-quality.js';
 import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants.js';
+import {checkQuality, configureQuality} from './check-quality.js';
 import PayloadBits from './payload-bits.js';
 
-const enableLogging = false;
 const textEncoder = new TextEncoder();
 
 export const defaultOptions = {
+    enableLogging: false,    // Log unknown message types to the console.
     cleanDecoded: false,     // Delete encoded undefined variables (i.e. sog will be undefined vs 102.3).
     propertyNames: null,     // Rename default property names to custom property names.
     qualityCheck: false,     // Perform additional data integrity checks according to `qualityOptions`.
@@ -200,7 +200,7 @@ export class AisDecoder {
                 this._decodeLongRangeBroadcast(bits, result);
                 break;
             default:
-                if (enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, this.getAisType(result.mtype), result.mmsi, input);
+                if (this.options.enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, this.getAisType(result.mtype), result.mmsi, input);
                 throw new Error('Invalid message type: ' + result.mtype);
         }
         
