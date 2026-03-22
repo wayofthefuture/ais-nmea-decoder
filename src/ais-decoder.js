@@ -387,26 +387,22 @@ export class AisDecoder {
         res.cog = bits.getInt(85, 9);
     }
 
-    _validateChecksum(input) {
-        if (typeof input !== 'string') return false;
-
-        const loc1 = input.indexOf('!');
+    _validateChecksum(input, symbol = '!') {
+        const loc1 = input.indexOf(symbol);
         const loc2 = input.indexOf('*');
 
         if (loc1 !== 0 || loc2 <= 0) return false;
 
-        const body = input.substring(1, loc2);
-        const checksum = input.substring(loc2 + 1);
+        const message = input.substring(1, loc2);
+        const provided = input.substring(loc2 + 1, loc2 + 3).toUpperCase();
 
         let sum = 0;
-        for (let i = 0; i < body.length; i++) {
-            sum ^= body.charCodeAt(i);  // xor based checksum
+        for (let i = 0; i < message.length; i++) {
+            sum ^= message.charCodeAt(i);  // xor based checksum
         }
+        const computed = sum.toString(16).toUpperCase().padStart(2, '0');  // i.e. '0F'
 
-        let hex = sum.toString(16).toUpperCase();
-        if (hex.length === 1) hex = '0' + hex;  // single digit hex needs preceding 0, '0F'
-
-        return (checksum === hex);
+        return (computed === provided);
     }
 
     _validatePosition(lon, lat) {

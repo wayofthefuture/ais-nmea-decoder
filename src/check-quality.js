@@ -56,7 +56,7 @@ export function checkDynamicResult(result) {
         throw new Error(`Quality: Skipping initial dynamic transmission #${prev.count}`);
     }
 
-    // Distance check: use longer window for stopped/slow vessels
+    // Distance check: use longer window for stopped/slow vessels - except for sar aircraft
     if (mtype !== 9 && now - prev.receive < dynamicDistanceTimeout) {
         const distance = distanceInNm(prev.lon, prev.lat, lon, lat);
         if (distance > maxDistanceNm) {
