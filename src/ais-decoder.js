@@ -59,12 +59,12 @@ export class AisDecoder {
             throw new Error('Sentence is empty or spaces.');
         }
 
-        if (!this._validateChecksum(input)) {
-            throw new Error('Sentence checksum is invalid.');
+        const data = this._parseNmeaSentence(input);
+        if (!data) {
+            throw new Error('Sentence is invalid or fails checksum.');
         }
 
-        // split nmea message !AIVDM,1,1,,B,B69>7mh0?J<:>05B0`0e;wq2PHI8,0*3D'
-        const parts = input.split(',');
+        const parts = data.split(',');
         if (parts.length !== 7) {
             throw new Error('Sentence contains invalid number of parts.');
         }
@@ -72,7 +72,7 @@ export class AisDecoder {
         let [messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload] = parts;
 
         // AIVDM = standard ais message, AIVDO = own vessel through pilot plug
-        if (messagePrefix !== '!AIVDM' && messagePrefix !== '!AIVDO') {
+        if (messagePrefix !== 'AIVDM' && messagePrefix !== 'AIVDO') {
             throw new Error('Invalid message prefix: ' + messagePrefix);
         }
 
@@ -387,22 +387,26 @@ export class AisDecoder {
         res.cog = bits.getInt(85, 9);
     }
 
-    _validateChecksum(sentence, prefix = '!') {
-        const start = sentence.indexOf(prefix) + 1;
-        if (start !== 1) return false;
+    //validate nmea checksum with the specified character prefix
+    //returns the message without symbol/checksum if valid, or null if invalid
+    _parseNmeaSentence(sentence, symbol = '!') {
+        const start = sentence.indexOf(symbol) + 1;
+        if (start !== 1) return null;
 
         const asterisk = sentence.indexOf('*');
-        if (asterisk <= start) return false;
+        if (asterisk <= start) return null;
 
+        //perform checksum using xor based calculation
         let checksum = 0;
         for (let i = start; i < asterisk; i++) {
             checksum ^= sentence.charCodeAt(i);
         }
 
-        const checked = checksum.toString(16).toUpperCase().padStart(2, '0');
-        const provided = sentence.substring(asterisk + 1, asterisk + 3).toUpperCase();
+        const checked = checksum.toString(16).toUpperCase().padStart(2, '0');  //i.e. '0F'
+        const provided = sentence.slice(asterisk + 1, asterisk + 3).toUpperCase();
+        if (checked !== provided) return null;
 
-        return (checked === provided);
+        return sentence.substring(start, asterisk);
     }
 
     _validatePosition(lon, lat) {
