@@ -6,8 +6,8 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants.js';
-import {checkQuality, configureQuality} from './check-quality.js';
+import { MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE } from './constants.js';
+import { checkQuality, configureQuality } from './check-quality.js';
 import PayloadBits from './payload-bits.js';
 
 const textEncoder = new TextEncoder();
@@ -26,10 +26,10 @@ export const defaultOptions = {
 
 export class AisDecoder {
     constructor(options) {
-        this.options = {...defaultOptions, ...options};
+        this.options = { ...defaultOptions, ...options };
         configureQuality(this.options.qualityOptions);
     }
-    
+
     parse(input) {
         try {
             const data = this._getMessageData(input);
@@ -44,7 +44,7 @@ export class AisDecoder {
 
             return result;
         } catch (error) {
-            return {error: error.message};
+            return { error: error.message };
         }
     }
 
@@ -68,7 +68,7 @@ export class AisDecoder {
         if (parts.length !== 7) {
             throw new Error('Sentence contains invalid number of parts.');
         }
-        
+
         let [messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload] = parts;
 
         // AIVDM = standard ais message, AIVDO = own vessel through pilot plug
@@ -83,22 +83,22 @@ export class AisDecoder {
         if (!isNumeric(currentFragment)) {
             throw new Error('Invalid fragment number.');
         }
-        
+
         if (!rawPayload.trim().length) {
             throw new Error('Payload is empty.');
         }
 
         totalFragments = +totalFragments;
         currentFragment = +currentFragment;
-        
-        return {messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload};
+
+        return { messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload };
     }
-    
+
     // Parse message fragments into a session object and return the encoded payload when all fragments have been received
     _parseMessage(data) {
-        const {totalFragments, currentFragment, channel, rawPayload} = data;
+        const { totalFragments, currentFragment, channel, rawPayload } = data;
 
-        const result = {channel};
+        const result = { channel };
 
         // one-part message
         if (totalFragments === 1) {
@@ -161,9 +161,9 @@ export class AisDecoder {
     _decodeMessage(result, input) {
         const bits = new PayloadBits(result.payload);
 
-        result.mtype  = bits.getInt(0, 6);
+        result.mtype = bits.getInt(0, 6);
         result.repeat = bits.getInt(6, 2);
-        result.mmsi   = bits.getInt(8, 30);
+        result.mmsi = bits.getInt(8, 30);
 
         switch (result.mtype) {
             case 1:
@@ -203,7 +203,7 @@ export class AisDecoder {
                 if (this.options.enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, this.getAisType(result.mtype), result.mmsi, input);
                 throw new Error('Invalid message type: ' + result.mtype);
         }
-        
+
         return result;
     }
 
@@ -227,7 +227,7 @@ export class AisDecoder {
 
     _decodeClassBPositionReport(bits, res) {
         res.class = 'B';
-        res.repeat = bits.getInt(6,2);
+        res.repeat = bits.getInt(6, 2);
         res.accuracy = bits.getInt(56, 1);
 
         res.lon = bits.getLon(57);
@@ -252,37 +252,37 @@ export class AisDecoder {
             throw new Error('Invalid longitude/latitude in Extended Class B position report');
         }
 
-        res.sog  = bits.getInt(46, 10) / 10;
-        res.cog  = bits.getInt(112, 12) / 10;
-        res.hdg  = bits.getInt(124, 9);
-        res.utc  = bits.getInt(133, 6);
-        res.name = bits.getStr(143,120);
-        res.type = bits.getInt(263,8);
+        res.sog = bits.getInt(46, 10) / 10;
+        res.cog = bits.getInt(112, 12) / 10;
+        res.hdg = bits.getInt(124, 9);
+        res.utc = bits.getInt(133, 6);
+        res.name = bits.getStr(143, 120);
+        res.type = bits.getInt(263, 8);
         res.dimA = bits.getInt(271, 9);
         res.dimB = bits.getInt(280, 9);
         res.dimC = bits.getInt(289, 6);
         res.dimD = bits.getInt(295, 6);
-        res.len  = res.dimA + res.dimB;
-        res.wid  = res.dimC + res.dimD;
+        res.len = res.dimA + res.dimB;
+        res.wid = res.dimC + res.dimD;
     }
 
     _decodeStaticVoyageData(bits, res) {
         res.class = 'A';
-        res.ver   = bits.getInt(38,2);
-        res.imo   = bits.getInt(40, 30);
-        res.sign  = bits.getStr(70, 42);
-        res.name  = bits.getStr(112, 120);
-        res.type  = bits.getInt(232, 8);
-        res.dimA  = bits.getInt(240, 9);
-        res.dimB  = bits.getInt(249, 9);
-        res.dimC  = bits.getInt(258, 6);
-        res.dimD  = bits.getInt(264, 6);
+        res.ver = bits.getInt(38, 2);
+        res.imo = bits.getInt(40, 30);
+        res.sign = bits.getStr(70, 42);
+        res.name = bits.getStr(112, 120);
+        res.type = bits.getInt(232, 8);
+        res.dimA = bits.getInt(240, 9);
+        res.dimB = bits.getInt(249, 9);
+        res.dimC = bits.getInt(258, 6);
+        res.dimD = bits.getInt(264, 6);
         res.etaMo = bits.getInt(274, 4);
         res.etaDy = bits.getInt(278, 5);
         res.etaHr = bits.getInt(283, 5);
         res.etaMn = bits.getInt(288, 6);
         res.draft = bits.getInt(294, 8) / 10;
-        res.dest  = bits.getStr(302, 120);
+        res.dest = bits.getStr(302, 120);
 
         res.len = res.dimA + res.dimB;
         res.wid = res.dimC + res.dimD;
@@ -317,8 +317,8 @@ export class AisDecoder {
             res.dimB = bits.getInt(141, 9);
             res.dimC = bits.getInt(150, 6);
             res.dimD = bits.getInt(156, 6);
-            res.len  = res.dimA + res.dimB;
-            res.wid  = res.dimC + res.dimD;
+            res.len = res.dimA + res.dimB;
+            res.wid = res.dimC + res.dimD;
             return;
         }
 
@@ -361,10 +361,10 @@ export class AisDecoder {
         res.dimB = bits.getInt(228, 9);
         res.dimC = bits.getInt(237, 6);
         res.dimD = bits.getInt(243, 6);
-        res.utc  = bits.getInt(253, 6);
+        res.utc = bits.getInt(253, 6);
 
-        res.len  = res.dimA + res.dimB;
-        res.wid  = res.dimC + res.dimD;
+        res.len = res.dimA + res.dimB;
+        res.wid = res.dimC + res.dimD;
     }
 
     _decodeTextMessage(bits, res) {
@@ -432,7 +432,7 @@ export class AisDecoder {
 
     // Map standard property names to custom property names
     _mapProperties(result) {
-        const {propertyNames} = this.options;
+        const { propertyNames } = this.options;
         if (!propertyNames) return;
 
         for (const [key, value] of propertyNames) {
