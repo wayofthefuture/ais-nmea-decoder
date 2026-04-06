@@ -3,7 +3,7 @@ import type { Bit } from 'bitwise/types';
 
 const textDecoder = new TextDecoder();
 
-export default class PayloadBits {
+export class PayloadBits {
     public bits: Bit[] = [];
 
     constructor(payload: Uint8Array) {

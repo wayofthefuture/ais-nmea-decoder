@@ -8,7 +8,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 
 import { MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE } from './constants';
 import { checkQuality, configureQuality } from './check-quality';
-import PayloadBits from './payload-bits';
+import { PayloadBits } from './payload-bits';
 import type { AisParseResults } from './definitions';
 
 const textEncoder = new TextEncoder();
@@ -46,7 +46,7 @@ export type AisDecoderOptions = {
     };
 };
 
-type AisMessageData = {
+export type AisMessageData = {
     messagePrefix: string;
     totalFragments: number;
     currentFragment: number;
