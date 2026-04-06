@@ -516,5 +516,5 @@ export class AisDecoder {
  * @returns True if the value is numeric, false otherwise
  */
 export function isNumeric(val: any) {
-    return (!isNaN(parseFloat(val as any)) && isFinite(val as any));
+    return (!isNaN(parseFloat(val)) && isFinite(val));
 }
