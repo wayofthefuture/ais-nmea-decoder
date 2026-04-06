@@ -73,7 +73,7 @@ export const defaultOptions = {
  */
 export class AisDecoder {
     private options: Required<AisDecoderOptions>;
-    private session: AisMessageData & { receive: number } | undefined;
+    private session: AisMessageData & { receive?: number } | undefined;
 
     constructor(options?: AisDecoderOptions) {
         this.options = { ...defaultOptions, ...options };
@@ -163,7 +163,8 @@ export class AisDecoder {
 
         // parse two-part message - store data for validation - always overwrite session on new two-part sequence
         if (currentFragment === 1) {
-            this.session = { ...data, receive: Date.now() };
+            this.session = data;
+            this.session.receive = Date.now();
             result.pending = true;
             return result;
         }
@@ -184,13 +185,13 @@ export class AisDecoder {
     }
 
     // Validate a two-part message (type 5, 19) and ensure that parts from different vessels aren't mis-matched
-    _validateTwoPart(session: AisMessageData & { receive: number }, data: AisMessageData) {
+    _validateTwoPart(session: AisMessageData & { receive?: number }, data: AisMessageData) {
         if (!session) {
             return 'Part 1 missing from two-part message.';
         }
 
         // implement a timeout since we have no absolute way to determine if the 2nd message pairs with the 1st
-        if (Date.now() - session.receive > 3_000) {
+        if (Date.now() - session.receive! > 3_000) {
             return 'Part 2 message is too old relative to part 1.';
         }
 
