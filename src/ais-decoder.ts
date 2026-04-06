@@ -520,5 +520,5 @@ export class AisDecoder {
  * @returns True if the value is numeric, false otherwise
  */
 function isNumeric(val: string | undefined) {
-    return (val && !isNaN(parseFloat(val)) && isFinite(parseFloat(val)));
+    return (val !== undefined && !isNaN(parseFloat(val)) && isFinite(parseFloat(val)));
 }
