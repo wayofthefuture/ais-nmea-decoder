@@ -7,7 +7,8 @@ https://www.apache.org/licenses/LICENSE-2.0
 */
 
 import { describe, it, expect } from 'vitest';
-import { AisDecoder } from './ais-decoder.js';
+import { AisDecoder } from './ais-decoder';
+import type { AisParseResults } from './definitions';
 
 const testCases = {
     msg24a: { // class B static info
@@ -212,14 +213,14 @@ const decoder = new AisDecoder();
 
 for (const [name, testCase] of Object.entries(testCases)) {
     describe(name, () => {
-        let result;
+        let result: AisParseResults;
 
         //two-part message
         if (Array.isArray(testCase.raw)) {
-            result = decoder.parse(testCase.raw[0]);
+            result = decoder.parse(testCase.raw[0]!);
             expect(result.error).toBeUndefined();
             expect(result.pending).toBe(true);
-            result = decoder.parse(testCase.raw[1]);
+            result = decoder.parse(testCase.raw[1]!);
         } else {
             result = decoder.parse(testCase.raw);
         }
@@ -249,9 +250,9 @@ describe('mapProperties', () => {
         });
         const decoded = decoder.parse(testCases.msg1.raw);
 
-        expect(decoded.vesselId).toBe(205035000);
-        expect(decoded.speedOverGround).toBe(0);
-        expect(decoded.courseOverGround).toBe(0);
+        expect(decoded["vesselId"]).toBe(205035000);
+        expect(decoded["speedOverGround"]).toBe(0);
+        expect(decoded["courseOverGround"]).toBe(0);
         expect(decoded.mmsi).toBeUndefined();
         expect(decoded.sog).toBeUndefined();
         expect(decoded.cog).toBeUndefined();
@@ -266,14 +267,14 @@ describe('mapProperties', () => {
         });
         const decoded = decoder.parse(testCases.msg1.raw);
 
-        expect(decoded.vesselId).toBe(205035000);
-        expect(decoded.renamed).toBeUndefined();
+        expect(decoded["vesselId"]).toBe(205035000);
+        expect(decoded["renamed"]).toBeUndefined();
     });
 });
 
 describe('error cases', () => {
     it('should return error for invalid sentence', () => {
-        const result = decoder.parse(123);
+        const result = decoder.parse(123 as any);
         expect(result.error).toBe('Sentence is not of type string.');
     });
 
