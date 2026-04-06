@@ -1,27 +1,33 @@
 import bitwise from 'bitwise';
+import type {Bit} from 'bitwise/types';
 
 const textDecoder = new TextDecoder();
 
-export default class PayloadBits {
-    constructor(payload) {
+export class PayloadBits {
+    public bits: Bit[] = [];
+
+    constructor(payload: Uint8Array) {
         this.decode(payload);
     }
 
-    // Converts AIS "armored ASCII" payload into a flat array of bits.
-    // See AIVDM/AIVDO Payload Armoring in the guide for details.
-    //
-    // The data payload is an ASCII-encoded bit vector. Each character
-    // represents six bits of data using two ASCII ranges:
-    //   6-bit 0-39  → ASCII 48-87  ('0' to 'W')
-    //   6-bit 40-63 → ASCII 96-119 ('`' to 'w')
-    //
-    // The gap ASCII 88-95 ('X' to '_') is unused.
-    //
-    decode(payload) {
-        const bits = [];
+    /**
+     * Converts AIS "armored ASCII" payload into a flat array of bits.
+     * See AIVDM/AIVDO Payload Armoring in the guide for details.
+     *
+     * The data payload is an ASCII-encoded bit vector. Each character
+     * represents six bits of data using two ASCII ranges:
+     *   6-bit 0-39  → ASCII 48-87  ('0' to 'W')
+     *   6-bit 40-63 → ASCII 96-119 ('`' to 'w')
+     *
+     * The gap ASCII 88-95 ('X' to '_') is unused.
+     *
+     * @param payload The payload to decode.
+     */
+    decode(payload: Uint8Array) {
+        const bits: Bit[] = [];
 
         for (let i = 0; i < payload.length; i++) {
-            let code = payload[i];  // standard ascii char code
+            let code = payload[i]!;  // standard ascii char code
 
             // check invalid ASCII ranges outside of 48-87 and 96-119
             if (code < 48 || code > 119) {
@@ -39,10 +45,10 @@ export default class PayloadBits {
             }
 
             // convert 6-bit value to individual bits
-            const eightBits = bitwise.byte.read(code);
+            const eightBits = bitwise.byte.read(code as Parameters<typeof bitwise.byte.read>[0]);
             bits.push(...eightBits.slice(2));
         }
-        
+
         this.bits = bits;
     }
 
@@ -50,22 +56,28 @@ export default class PayloadBits {
         return this.bits.length;
     }
 
-    getLon(start) {
+    getLon(start: number) {
         return this.getInt(start, 28, true) / 600000;
     }
 
-    getLat(start) {
+    getLat(start: number) {
         return this.getInt(start, 27, true) / 600000;
     }
 
-    // Extract an integer (signed or unsigned) from the bit array.
-    //
-    // - For unsigned integers, the bits are converted directly to a number.
-    // - For signed integers, the first bit (MSB) indicates the sign:
-    //     0 = positive → convert bits to number as-is
-    //     1 = negative → use two's complement to get the negative value
-    //
-    getInt(start, length, signed) {
+    /**
+     * Extract an integer (signed or unsigned) from the bit array.
+     *
+     * - For unsigned integers, the bits are converted directly to a number.
+     * - For signed integers, the first bit (MSB) indicates the sign:
+     *     0 = positive → convert bits to number as-is
+     *     1 = negative → use two's complement to get the negative value
+     *
+     * @param start The starting position in the bit array.
+     * @param length The number of bits to extract.
+     * @param signed Whether the integer is signed.
+     * @returns The extracted integer.
+     */
+    getInt(start: number, length: number, signed?: boolean) {
         const bits = this.bits.slice(start, start + length);
 
         const negative = (signed && bits[0] === 1);
@@ -78,14 +90,22 @@ export default class PayloadBits {
         return this.bitsToNumber(bits);
     }
 
-    // Extract a boolean (single bit) from the bit array
-    getBool(start) {
+    /**
+     * Extract a boolean (single bit) from the bit array.
+     * @param start The starting position in the bit array.
+     * @returns The extracted boolean.
+     */
+    getBool(start: number) {
         return (this.bits[start] === 1);
     }
 
-    // Extract a text string from the bit array
-    // @param length - number of bits to extract - if not provided, extracts to end of array
-    getStr(start, length) {
+    /**
+     * Extract a text string from the bit array.
+     * @param start The starting position in the bit array.
+     * @param length The number of bits to extract - if not provided, extracts to end of array.
+     * @returns The extracted text string.
+     */
+    getStr(start: number, length?: number) {
         if (start >= this.bits.length) {
             return '';
         }
@@ -118,18 +138,22 @@ export default class PayloadBits {
             }
             // 64 is '@' which marks the end of name/text
             if (charCode === 64) break;
-            
+
             bytes[count++] = charCode;
         }
 
         return textDecoder.decode(bytes.subarray(0, count)).trim();
     }
 
-    // Convert an array of bits (0s and 1s) to an unsigned integer ([1, 0, 1] => 5)
-    bitsToNumber(bits) {
+    /**
+     * Convert an array of bits (0s and 1s) to an unsigned integer ([1, 0, 1] => 5).
+     * @param bits The array of bits to convert.
+     * @returns The converted integer.
+     */
+    bitsToNumber(bits: Bit[]) {
         let result = 0;
         for (let i = 0; i < bits.length; i++) {
-            result = result * 2 + bits[i];
+            result = result * 2 + bits[i]!;
         }
         return result;
     }

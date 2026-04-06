@@ -7,7 +7,8 @@ https://www.apache.org/licenses/LICENSE-2.0
 */
 
 import {describe, it, expect} from 'vitest';
-import {AisDecoder} from './ais-decoder.js';
+import {AisDecoder, isNumeric} from './ais-decoder';
+import type {AisParseResult} from './definitions';
 
 const testCases = {
     msg24a: { // class B static info
@@ -212,14 +213,14 @@ const decoder = new AisDecoder();
 
 for (const [name, testCase] of Object.entries(testCases)) {
     describe(name, () => {
-        let result;
+        let result: AisParseResult;
 
         //two-part message
         if (Array.isArray(testCase.raw)) {
-            result = decoder.parse(testCase.raw[0]);
+            result = decoder.parse(testCase.raw[0]!);
             expect(result.error).toBeUndefined();
             expect(result.pending).toBe(true);
-            result = decoder.parse(testCase.raw[1]);
+            result = decoder.parse(testCase.raw[1]!);
         } else {
             result = decoder.parse(testCase.raw);
         }
@@ -249,9 +250,9 @@ describe('mapProperties', () => {
         });
         const decoded = decoder.parse(testCases.msg1.raw);
 
-        expect(decoded.vesselId).toBe(205035000);
-        expect(decoded.speedOverGround).toBe(0);
-        expect(decoded.courseOverGround).toBe(0);
+        expect(decoded["vesselId"]).toBe(205035000);
+        expect(decoded["speedOverGround"]).toBe(0);
+        expect(decoded["courseOverGround"]).toBe(0);
         expect(decoded.mmsi).toBeUndefined();
         expect(decoded.sog).toBeUndefined();
         expect(decoded.cog).toBeUndefined();
@@ -266,7 +267,73 @@ describe('mapProperties', () => {
         });
         const decoded = decoder.parse(testCases.msg1.raw);
 
-        expect(decoded.vesselId).toBe(205035000);
-        expect(decoded.renamed).toBeUndefined();
+        expect(decoded["vesselId"]).toBe(205035000);
+        expect(decoded["renamed"]).toBeUndefined();
     });
 });
+
+describe('error cases', () => {
+    it('should return error for invalid sentence', () => {
+        const result = decoder.parse(123 as any);
+        expect(result.error).toBe('Sentence is not of type string.');
+    });
+
+    it('should return error for empty sentence', () => {
+        const result = decoder.parse('');
+        expect(result.error).toBe('Sentence is empty or spaces.');
+    });
+
+    it('should return error for invalid checksum', () => {
+        const result = decoder.parse('!invalid-checksum*00');
+        expect(result.error).toBe('Sentence is invalid or fails checksum.');
+    });
+
+    it('should return error for invalid total fragment count', () => {
+        const result = decoder.parse('!1,2,3,4,5,6,7,8*24');
+        expect(result.error).toBe('Sentence contains invalid number of parts.');
+    });
+
+    it('should return error for invalid message prefix', () => {
+        const result = decoder.parse('!invalid-prefix,,,,,,0*7C');
+        expect(result.error).toBe('Invalid message prefix: invalid-prefix');
+    });
+
+    it('should return error for invalid total fragment count (not a number)', () => {
+        const result = decoder.parse('!AIVDM,not-a-number,,,,,*40');
+        expect(result.error).toBe('Invalid total fragment count.');
+    });
+
+    it('should return error for invalid fragment number (not a number)', () => {
+        const result = decoder.parse('!AIVDM,1,not-a-number,,,,*71');
+        expect(result.error).toBe('Invalid fragment number.');
+    });
+
+    it('should return error for invalid payload', () => {
+        const result = decoder.parse('!AIVDM,1,1,,,,*57');
+        expect(result.error).toBe('Payload is empty.');
+    });
+
+    it('should return error for invalid total fragment count > 2', () => {
+        const result = decoder.parse('!AIVDM,3,1,,,hi,*54');
+        expect(result.error).toBe('Invalid total fragment count.');
+    });
+
+    it('should return error for invalid fragment number > 2', () => {
+        const result = decoder.parse('!AIVDM,2,3,,,hi,*57');
+        expect(result.error).toBe('Invalid fragment number for two-part message.');
+    });
+})
+
+describe('isNumeric', () => {
+    for (const value of ['0', 0, '1', 1, '1.1', 1.1, '-1.1', -1.1]) {
+        it(`should return true for ${JSON.stringify(value)}`, () => {
+            expect(isNumeric(value as any)).toBe(true);
+        });
+    }
+
+    for (const value of [null, undefined, 'a123', '123.a', '', ' ', NaN, Infinity, -Infinity]) {
+        it(`should return false for ${JSON.stringify(value)}`, () => {
+            expect(isNumeric(value as any)).toBe(false);
+        });
+    }
+})

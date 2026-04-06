@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest';
-import PayloadBits from './payload-bits.js';
+import {PayloadBits} from './payload-bits';
 
 const textEncoder = new TextEncoder();
 
