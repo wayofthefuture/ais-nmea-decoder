@@ -1,11 +1,11 @@
-import type { AisParseResults, QualityOptions } from "./definitions";
+import type {AisParseResult, QualityOptions} from './definitions';
 
 const dynamicMovingTimeout = 600_000;     // 10 minutes
 const dynamicStoppedTimeout = 1_800_000;  // 30 minutes
 const dynamicDistanceTimeout = 30_000;    // 30 seconds
 const staticTimeout = 1_800_000;          // 30 minutes
 
-type DynamicStats = {
+type QualityStat = {
     receive: number;
     count: number;
     lon?: number | undefined;
@@ -14,8 +14,8 @@ type DynamicStats = {
 
 let requiredDynamic: number, requiredStatic: number, maxDistanceNm: number;
 
-const dynamicStats: Record<number, DynamicStats> = {};
-const staticStats: Record<number, DynamicStats> = {};
+const dynamicStats: Record<number, QualityStat> = {};
+const staticStats: Record<number, QualityStat> = {};
 
 export function configureQuality(options: QualityOptions = {}) {
     requiredDynamic = options.requiredDynamic ?? requiredDynamic;
@@ -23,7 +23,7 @@ export function configureQuality(options: QualityOptions = {}) {
     maxDistanceNm = options.maxDistanceNm ?? maxDistanceNm;
 }
 
-export function checkQuality(result: AisParseResults) {
+export function checkQuality(result: AisParseResult) {
     if (typeof result.lon === 'number') {
         checkDynamicResult(result);
     } else {
@@ -40,20 +40,20 @@ export function checkQuality(result: AisParseResults) {
  *   2. Reset the count if more than dynamic timeout since last transmission, treating it as a new contact.
  *   3. Reject positions that jump more than maxDistanceNm from the previous position (except sar aircraft).
  */
-export function checkDynamicResult(result: AisParseResults) {
+export function checkDynamicResult(result: AisParseResult) {
     if (requiredDynamic === 0) return true;
 
-    const { mmsi, mtype, lon, lat, sog } = result;
+    const {mmsi, mtype, lon, lat, sog} = result;
     if (!mmsi) throw new Error('Quality: Missing MMSI.');
 
     const now = Date.now();
-    const prev = dynamicStats[mmsi] as DynamicStats;
+    const prev = dynamicStats[mmsi] as QualityStat;
 
     const resetTimeout = (typeof sog === 'number' && sog < 1) ? dynamicStoppedTimeout : dynamicMovingTimeout;
 
     // If no previous record, or stale beyond the dynamic timeout, start fresh
     if (!prev || now - prev.receive > resetTimeout) {
-        dynamicStats[mmsi] = { count: 1, receive: now, lon, lat };
+        dynamicStats[mmsi] = {count: 1, receive: now, lon, lat};
         throw new Error('Quality: Skipping initial dynamic transmission #1');
     }
 
@@ -91,10 +91,10 @@ export function checkDynamicResult(result: AisParseResults) {
  *   1. Skip the first N transmissions (requiredStatic) to filter out stale or initial data from a newly received vessel.
  *   2. Reset the count if more than staticTimeout since last transmission, treating it as a new contact.
  */
-export function checkStaticResult(result: AisParseResults) {
+export function checkStaticResult(result: AisParseResult) {
     if (requiredStatic === 0) return true;
 
-    const { mmsi } = result;
+    const {mmsi} = result;
     if (!mmsi) throw new Error('Quality: Missing MMSI.');
 
     const now = Date.now();
@@ -102,7 +102,7 @@ export function checkStaticResult(result: AisParseResults) {
 
     // If no previous record, or stale beyond the static reset timeout, start fresh
     if (!prev || now - prev.receive > staticTimeout) {
-        staticStats[mmsi] = { count: 1, receive: now };
+        staticStats[mmsi] = {count: 1, receive: now};
         throw new Error('Quality: Skipping initial static transmission #1');
     }
 

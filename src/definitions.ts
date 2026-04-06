@@ -1,4 +1,5 @@
-export type AisParseResults = {
+
+export type AisParseResult = {
     // state data
     payload?: Uint8Array;
     pending?: boolean;

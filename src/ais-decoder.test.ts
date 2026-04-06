@@ -6,9 +6,9 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-import { describe, it, expect } from 'vitest';
-import { AisDecoder } from './ais-decoder';
-import type { AisParseResults } from './definitions';
+import {describe, it, expect} from 'vitest';
+import {AisDecoder, isNumeric} from './ais-decoder';
+import type {AisParseResult} from './definitions';
 
 const testCases = {
     msg24a: { // class B static info
@@ -213,7 +213,7 @@ const decoder = new AisDecoder();
 
 for (const [name, testCase] of Object.entries(testCases)) {
     describe(name, () => {
-        let result: AisParseResults;
+        let result: AisParseResult;
 
         //two-part message
         if (Array.isArray(testCase.raw)) {
@@ -322,4 +322,18 @@ describe('error cases', () => {
         const result = decoder.parse('!AIVDM,2,3,,,hi,*57');
         expect(result.error).toBe('Invalid fragment number for two-part message.');
     });
+})
+
+describe('isNumeric', () => {
+    for (const value of ['0', 0, '1', 1, '1.1', 1.1, '-1.1', -1.1]) {
+        it(`should return true for ${JSON.stringify(value)}`, () => {
+            expect(isNumeric(value as any)).toBe(true);
+        });
+    }
+
+    for (const value of [null, undefined, 'a123', '123.a', '', ' ', NaN, Infinity, -Infinity]) {
+        it(`should return false for ${JSON.stringify(value)}`, () => {
+            expect(isNumeric(value as any)).toBe(false);
+        });
+    }
 })

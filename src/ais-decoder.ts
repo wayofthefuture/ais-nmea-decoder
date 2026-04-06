@@ -6,10 +6,10 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-import { MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE } from './constants';
-import { checkQuality, configureQuality } from './check-quality';
-import { PayloadBits } from './payload-bits';
-import type { AisParseResults, QualityOptions } from './definitions';
+import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants';
+import {checkQuality, configureQuality} from './check-quality';
+import {PayloadBits} from './payload-bits';
+import type {AisParseResult, QualityOptions} from './definitions';
 
 const textEncoder = new TextEncoder();
 
@@ -25,7 +25,7 @@ export type AisDecoderOptions = {
     /**
      * Rename default property names to custom property names.
      */
-    propertyNames?: string[][] | null;
+    propertyNames?: [string, string][] | null;
     /**
      * Perform additional data integrity checks according to `qualityOptions`.
      */
@@ -63,7 +63,7 @@ export class AisDecoder {
     private session: AisMessageData & { receive?: number } | undefined;
 
     constructor(options?: AisDecoderOptions) {
-        this.options = { ...defaultOptions, ...options };
+        this.options = {...defaultOptions, ...options};
         configureQuality(this.options.qualityOptions);
     }
 
@@ -72,7 +72,7 @@ export class AisDecoder {
      * @param input The AIS NMEA sentence to parse.
      * @returns The parsed AIS message.
      */
-    parse(input: string): AisParseResults {
+    parse(input: string): AisParseResult {
         try {
             const data = this._getMessageData(input);
             const result = this._parseMessage(data);
@@ -86,7 +86,7 @@ export class AisDecoder {
 
             return result;
         } catch (error) {
-            return { error: error.message };
+            return {error: error.message};
         }
     }
 
@@ -130,14 +130,21 @@ export class AisDecoder {
             throw new Error('Payload is empty.');
         }
 
-        return { messagePrefix, totalFragments: +totalFragments!, currentFragment: +currentFragment!, sequenceId: sequenceId!, channel: channel!, rawPayload };
+        return {
+            messagePrefix,
+            totalFragments: +totalFragments!,
+            currentFragment: +currentFragment!,
+            sequenceId: sequenceId!,
+            channel: channel!,
+            rawPayload
+        };
     }
 
     // Parse message fragments into a session object and return the encoded payload when all fragments have been received
-    _parseMessage(data: AisMessageData): AisParseResults {
-        const { totalFragments, currentFragment, channel, rawPayload } = data;
+    _parseMessage(data: AisMessageData): AisParseResult {
+        const {totalFragments, currentFragment, channel, rawPayload} = data;
 
-        const result: AisParseResults = { channel };
+        const result: AisParseResult = {channel};
 
         // one-part message
         if (totalFragments === 1) {
@@ -197,7 +204,7 @@ export class AisDecoder {
         return false;
     }
 
-    _decodeMessage(result: AisParseResults, input: string) {
+    _decodeMessage(result: AisParseResult, input: string) {
         const bits = new PayloadBits(result.payload!);
 
         result.mtype = bits.getInt(0, 6);
@@ -246,7 +253,7 @@ export class AisDecoder {
         return result;
     }
 
-    _decodeClassAPositionReport(bits: PayloadBits, res: AisParseResults) {
+    _decodeClassAPositionReport(bits: PayloadBits, res: AisParseResult) {
         res.class = 'A';
         res.nav = bits.getInt(38, 4);
 
@@ -264,7 +271,7 @@ export class AisDecoder {
         res.smi = bits.getInt(143, 2);
     }
 
-    _decodeClassBPositionReport(bits: PayloadBits, res: AisParseResults) {
+    _decodeClassBPositionReport(bits: PayloadBits, res: AisParseResult) {
         res.class = 'B';
         res.repeat = bits.getInt(6, 2);
         res.accuracy = bits.getInt(56, 1);
@@ -282,7 +289,7 @@ export class AisDecoder {
         res.dsc = bits.getBool(143);
     }
 
-    _decodeExtendedClassBPositionReport(bits: PayloadBits, res: AisParseResults) {
+    _decodeExtendedClassBPositionReport(bits: PayloadBits, res: AisParseResult) {
         res.class = 'B';
 
         res.lon = bits.getLon(57);
@@ -301,11 +308,12 @@ export class AisDecoder {
         res.dimB = bits.getInt(280, 9);
         res.dimC = bits.getInt(289, 6);
         res.dimD = bits.getInt(295, 6);
+
         res.len = res.dimA + res.dimB;
         res.wid = res.dimC + res.dimD;
     }
 
-    _decodeStaticVoyageData(bits: PayloadBits, res: AisParseResults) {
+    _decodeStaticVoyageData(bits: PayloadBits, res: AisParseResult) {
         res.class = 'A';
         res.ver = bits.getInt(38, 2);
         res.imo = bits.getInt(40, 30);
@@ -330,7 +338,7 @@ export class AisDecoder {
     // Decode type 24 static data report which comes in multiple formats based on the specification.
     // Note that `part` here is a message format (A/B) identifier rather than a message part number.
     // Message format `B` also has two sub formats (mothership/dimensions)
-    _decodeStaticDataReport(bits: PayloadBits, res: AisParseResults) {
+    _decodeStaticDataReport(bits: PayloadBits, res: AisParseResult) {
         res.class = 'B';
         res.part = bits.getInt(38, 2);
 
@@ -364,7 +372,7 @@ export class AisDecoder {
         throw new Error('Invalid part number for static data report');
     }
 
-    _decodeBaseStationReport(bits: PayloadBits, res: AisParseResults) {
+    _decodeBaseStationReport(bits: PayloadBits, res: AisParseResult) {
         res.lon = bits.getLon(79);
         res.lat = bits.getLat(107);
         if (!this._validatePosition(res.lon, res.lat)) {
@@ -372,7 +380,7 @@ export class AisDecoder {
         }
     }
 
-    _decodeSarAircraftReport(bits: PayloadBits, res: AisParseResults) {
+    _decodeSarAircraftReport(bits: PayloadBits, res: AisParseResult) {
         res.alt = bits.getInt(38, 12);
 
         res.lon = bits.getLon(61);
@@ -386,7 +394,7 @@ export class AisDecoder {
         res.cog = bits.getInt(116, 12) / 10;
     }
 
-    _decodeAidToNavigation(bits: PayloadBits, res: AisParseResults) {
+    _decodeAidToNavigation(bits: PayloadBits, res: AisParseResult) {
         res.type = bits.getInt(38, 5);
         res.name = bits.getStr(43, 120) + bits.getStr(272);  // name + name extension
 
@@ -406,13 +414,13 @@ export class AisDecoder {
         res.wid = res.dimC + res.dimD;
     }
 
-    _decodeTextMessage(bits: PayloadBits, res: AisParseResults) {
+    _decodeTextMessage(bits: PayloadBits, res: AisParseResult) {
         const text = bits.getStr(40);
         if (!text) throw new Error('Text message is empty');
         res.text = text;
     }
 
-    _decodeLongRangeBroadcast(bits: PayloadBits, res: AisParseResults) {
+    _decodeLongRangeBroadcast(bits: PayloadBits, res: AisParseResult) {
         res.nav = bits.getInt(40, 4);
 
         // lon/lat has different format than other messages
@@ -425,6 +433,7 @@ export class AisDecoder {
         res.sog = bits.getInt(79, 6);
         res.cog = bits.getInt(85, 9);
     }
+
     /**
      * Validate nmea checksum with the specified character prefix
      * @param sentence The NMEA sentence to validate.
@@ -456,7 +465,7 @@ export class AisDecoder {
     }
 
     // Delete encoded undefined variables (i.e. sog will be undefined vs 102.3)
-    _cleanDecoded(result) {
+    _cleanDecoded(result: AisParseResult) {
         if (!this.options.cleanDecoded) return;
 
         if (result.sog === 102.3) {
@@ -473,14 +482,14 @@ export class AisDecoder {
     }
 
     // Map standard property names to custom property names
-    _mapProperties(result: AisParseResults) {
-        const { propertyNames } = this.options;
+    _mapProperties(result: AisParseResult) {
+        const {propertyNames} = this.options;
         if (!propertyNames) return;
 
         for (const [key, value] of propertyNames) {
-            if (result[key as any] === undefined) continue;
-            result[value as any] = result[key as any];
-            delete result[key as any];
+            if (result[key] === undefined) continue;
+            result[value] = result[key];
+            delete result[key];
         }
     }
 
@@ -502,10 +511,10 @@ export class AisDecoder {
 }
 
 /**
- * Check if a value is numeric
+ * Check if a value is numeric (true for '0', 0, '1', 1, '1.1', 1.1, '-1.1', -1.1)
  * @param val The value to check
  * @returns True if the value is numeric, false otherwise
  */
-function isNumeric(val: string | undefined) {
-    return (val !== undefined && !isNaN(parseFloat(val)) && isFinite(parseFloat(val)));
+export function isNumeric(val: any) {
+    return (!isNaN(parseFloat(val as any)) && isFinite(val as any));
 }

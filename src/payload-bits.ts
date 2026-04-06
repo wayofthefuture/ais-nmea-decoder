@@ -1,5 +1,5 @@
 import bitwise from 'bitwise';
-import type { Bit } from 'bitwise/types';
+import type {Bit} from 'bitwise/types';
 
 const textDecoder = new TextDecoder();
 
