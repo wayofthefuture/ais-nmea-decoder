@@ -80,3 +80,18 @@ export type AisParseResults = {
     /** Safety - related text | 14 | */
     text?: string;
 }
+
+export type QualityOptions = {
+    /**
+     * Number of required consecutive messages with position for an mmsi before accepting.
+     */
+    requiredDynamic?: number;
+    /**
+     * Number of required consecutive messages with static information for an mmsi before accepting.
+     */
+    requiredStatic?: number;
+    /**
+     * Maximum distance in nautical miles between consecutive position reports within the distance timeout.
+     */
+    maxDistanceNm?: number;
+}

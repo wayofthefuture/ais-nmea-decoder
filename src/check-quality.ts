@@ -1,19 +1,26 @@
-import type { AisParseResults } from "./definitions";
+import type { AisParseResults, QualityOptions } from "./definitions";
 
 const dynamicMovingTimeout = 600_000;     // 10 minutes
 const dynamicStoppedTimeout = 1_800_000;  // 30 minutes
 const dynamicDistanceTimeout = 30_000;    // 30 seconds
 const staticTimeout = 1_800_000;          // 30 minutes
 
-let requiredDynamic, requiredStatic, maxDistanceNm;
+type DynamicStats = {
+    receive: number;
+    count: number;
+    lon?: number | undefined;
+    lat?: number | undefined;
+}
 
-const dynamicStats = {};
-const staticStats = {};
+let requiredDynamic: number, requiredStatic: number, maxDistanceNm: number;
 
-export function configureQuality(options: Record<string, any> = {}) {
-    requiredDynamic = options['requiredDynamic'] ?? requiredDynamic;
-    requiredStatic = options['requiredStatic'] ?? requiredStatic;
-    maxDistanceNm = options['maxDistanceNm'] ?? maxDistanceNm;
+const dynamicStats: Record<number, DynamicStats> = {};
+const staticStats: Record<number, DynamicStats> = {};
+
+export function configureQuality(options: QualityOptions = {}) {
+    requiredDynamic = options.requiredDynamic ?? requiredDynamic;
+    requiredStatic = options.requiredStatic ?? requiredStatic;
+    maxDistanceNm = options.maxDistanceNm ?? maxDistanceNm;
 }
 
 export function checkQuality(result: AisParseResults) {
@@ -40,7 +47,7 @@ export function checkDynamicResult(result: AisParseResults) {
     if (!mmsi) throw new Error('Quality: Missing MMSI.');
 
     const now = Date.now();
-    const prev = dynamicStats[mmsi] as { receive: number, count: number, lon: number, lat: number };
+    const prev = dynamicStats[mmsi] as DynamicStats;
 
     const resetTimeout = (typeof sog === 'number' && sog < 1) ? dynamicStoppedTimeout : dynamicMovingTimeout;
 
@@ -60,7 +67,7 @@ export function checkDynamicResult(result: AisParseResults) {
 
     // Distance check: use longer window for stopped/slow vessels - except for sar aircraft
     if (mtype !== 9 && now - prev.receive < dynamicDistanceTimeout) {
-        const distance = distanceInNm(prev.lon, prev.lat, lon!, lat!);
+        const distance = distanceInNm(prev.lon!, prev.lat!, lon!, lat!);
         if (distance > maxDistanceNm) {
             throw new Error(`Quality: Skipping where position jumped ${distance.toFixed(2)} nm (max ${maxDistanceNm} nm).`);
         }

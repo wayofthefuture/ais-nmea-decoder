@@ -9,7 +9,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 import { MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE } from './constants';
 import { checkQuality, configureQuality } from './check-quality';
 import { PayloadBits } from './payload-bits';
-import type { AisParseResults } from './definitions';
+import type { AisParseResults, QualityOptions } from './definitions';
 
 const textEncoder = new TextEncoder();
 
@@ -30,20 +30,7 @@ export type AisDecoderOptions = {
      * Perform additional data integrity checks according to `qualityOptions`.
      */
     qualityCheck?: boolean;
-    qualityOptions?: {
-        /**
-         * Number of required consecutive messages with position for an mmsi before accepting.
-         */
-        requiredDynamic?: number;
-        /**
-         * Number of required consecutive messages with static information for an mmsi before accepting.
-         */
-        requiredStatic?: number;
-        /**
-         * Maximum distance in nautical miles between consecutive position reports within the distance timeout.
-         */
-        maxDistanceNm?: number;
-    };
+    qualityOptions?: QualityOptions;
 };
 
 export type AisMessageData = {
