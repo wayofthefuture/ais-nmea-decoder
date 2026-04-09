@@ -322,6 +322,49 @@ describe('error cases', () => {
         const result = decoder.parse('!AIVDM,2,3,,,hi,*57');
         expect(result.error).toBe('Invalid fragment number for two-part message.');
     });
+
+    it('should return error in case of invalid message type', () => {
+        const result = decoder.parse(`!AIVDM,1,1,1,1,w,*20`); // w is mtype 63
+        expect(result.error).toBe('Invalid message type: 63');
+    })
+
+    it('should return error in case of invalid A position report', () => {
+        const result = decoder.parse(`!AIVDM,1,1,1,1,A,*20`); // A is mtype 1
+        expect(result.error).toBe('Invalid message type: 1');
+    })
+})
+
+describe('error cases for seconds session', () => {
+    it('should return missing part 1 when sending only the second part', () => {
+        const result = decoder.parse('!AIVDM,2,2,,,hi,*56');
+        expect(result.error).toBe('Part 1 missing from two-part message.');
+    })
+
+    // HM TODO: bring this back.
+    it.skip('should return message too old when there is a time gap in the sequence', async () => {
+        decoder.parse('!AIVDM,2,1,,,hi,*55');
+        await new Promise(resolve => setTimeout(resolve, 4000)); // 4 seconds delay
+        const result2 = decoder.parse('!AIVDM,2,2,,,hi,*56');
+        expect(result2.error).toBe('Part 2 message is too old relative to part 1.');
+    })
+
+    it('should return error when second message prefix does not match the first one', () => {
+        decoder.parse('!AIVDM,2,1,,,hi,*55');
+        const result2 = decoder.parse('!AIVDO,2,2,,,hi,*54');
+        expect(result2.error).toBe('Part 2 message does not match part 1 message prefix.');
+    })
+
+    it('should return error when second message sequence id does not match the first one', () => {
+        decoder.parse('!AIVDM,2,1,seq1,,hi,*03');
+        const result2 = decoder.parse('!AIVDM,2,2,seq2,,hi,*03');
+        expect(result2.error).toBe('Part 2 message sequence id does not match part 1 sequence id.');
+    })
+
+    it('should return error when second message channel id does not match the first one', () => {
+        decoder.parse('!AIVDM,2,1,seq1,channel1,hi,*51');
+        const result2 = decoder.parse('!AIVDM,2,2,seq1,channel2,hi,*51');
+        expect(result2.error).toBe('Part 2 message channel does not match part 1 channel.');
+    })
 })
 
 describe('isNumeric', () => {
