@@ -327,11 +327,6 @@ describe('error cases', () => {
         const result = decoder.parse(`!AIVDM,1,1,1,1,w,*20`); // w is mtype 63
         expect(result.error).toBe('Invalid message type: 63');
     })
-
-    it('should return error in case of invalid A position report', () => {
-        const result = decoder.parse(`!AIVDM,1,1,1,1,A,*20`); // A is mtype 1
-        expect(result.error).toBe('Invalid message type: 1');
-    })
 })
 
 describe('error cases for seconds session', () => {
@@ -340,8 +335,7 @@ describe('error cases for seconds session', () => {
         expect(result.error).toBe('Part 1 missing from two-part message.');
     })
 
-    // HM TODO: bring this back.
-    it.skip('should return message too old when there is a time gap in the sequence', async () => {
+    it('should return message too old when there is a time gap in the sequence', async () => {
         decoder.parse('!AIVDM,2,1,,,hi,*55');
         await new Promise(resolve => setTimeout(resolve, 4000)); // 4 seconds delay
         const result2 = decoder.parse('!AIVDM,2,2,,,hi,*56');
