@@ -1,5 +1,5 @@
-
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![codecov](https://codecov.io/gh/wayofthefuture/ais-nmea-decoder/graph/badge.svg)](https://codecov.io/gh/wayofthefuture/ais-nmea-decoder)
 
 ### *Currently under development...
 
