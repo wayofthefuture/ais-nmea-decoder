@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants';
+import {MSG_TYPE} from './constants';
 import {checkQuality, configureQuality} from './check-quality';
 import {PayloadBits} from './payload-bits';
 import type {AisParseResult, QualityOptions} from './definitions';
@@ -63,7 +63,7 @@ export class AisDecoder {
     private session: AisMessageData & { receive?: number } | undefined;
 
     constructor(options?: AisDecoderOptions) {
-        this.options = {...defaultOptions, ...options};
+        this.options = { ...defaultOptions, ...options };
         configureQuality(this.options.qualityOptions);
     }
 
@@ -74,15 +74,15 @@ export class AisDecoder {
      */
     parse(input: string): AisParseResult {
         try {
-            const data = this._getMessageData(input);
-            const result = this._parseMessage(data);
+            const data = this.getMessageData(input);
+            const result = this.parseMessage(data);
             if (result.pending) return result;
 
-            this._decodeMessage(result, input);
+            this.decodeMessage(result, input);
             if (this.options.qualityCheck) checkQuality(result);
 
-            this._cleanDecoded(result);
-            this._mapProperties(result);
+            this.cleanDecoded(result);
+            this.mapProperties(result);
 
             return result;
         } catch (error) {
@@ -90,7 +90,7 @@ export class AisDecoder {
         }
     }
 
-    _getMessageData(input: string): AisMessageData {
+    private getMessageData(input: string): AisMessageData {
         if (typeof input !== 'string') {
             throw new Error('Sentence is not of type string.');
         }
@@ -101,7 +101,7 @@ export class AisDecoder {
             throw new Error('Sentence is empty or spaces.');
         }
 
-        const data = this._parseNmeaSentence(input);
+        const data = this.parseNmeaSentence(input);
         if (!data) {
             throw new Error('Sentence is invalid or fails checksum.');
         }
@@ -141,7 +141,7 @@ export class AisDecoder {
     }
 
     // Parse message fragments into a session object and return the encoded payload when all fragments have been received
-    _parseMessage(data: AisMessageData): AisParseResult {
+    private parseMessage(data: AisMessageData): AisParseResult {
         const {totalFragments, currentFragment, channel, rawPayload} = data;
 
         const result: AisParseResult = {channel};
@@ -166,7 +166,7 @@ export class AisDecoder {
             throw new Error('Invalid fragment number for two-part message.');
         }
 
-        const error = this._validateTwoPart(this.session!, data);
+        const error = this.validateTwoPart(this.session!, data);
         if (error) {
             this.session = undefined;
             throw new Error(error);
@@ -178,8 +178,10 @@ export class AisDecoder {
         return result;
     }
 
-    // Validate a two-part message (type 5, 19) and ensure that parts from different vessels aren't mis-matched
-    _validateTwoPart(session: AisMessageData & { receive?: number }, data: AisMessageData) {
+    /**
+     * Validate a two-part message (type 5, 19) and ensure that parts from different vessels aren't mis-matched
+     */
+    private validateTwoPart(session: AisMessageData & { receive?: number }, data: AisMessageData) {
         if (!session) {
             return 'Part 1 missing from two-part message.';
         }
@@ -204,7 +206,7 @@ export class AisDecoder {
         return false;
     }
 
-    _decodeMessage(result: AisParseResult, input: string) {
+    private decodeMessage(result: AisParseResult, input: string) {
         const bits = new PayloadBits(result.payload!);
 
         result.mtype = bits.getInt(0, 6);
@@ -215,51 +217,51 @@ export class AisDecoder {
             case 1:
             case 2:
             case 3:
-                this._decodeClassAPositionReport(bits, result);
+                this.decodeClassAPositionReport(bits, result);
                 break;
             case 4:
             case 11:
-                this._decodeBaseStationReport(bits, result);
+                this.decodeBaseStationReport(bits, result);
                 break;
             case 5:
-                this._decodeStaticVoyageData(bits, result);
+                this.decodeStaticVoyageData(bits, result);
                 break;
             case 9:
-                this._decodeSarAircraftReport(bits, result);
+                this.decodeSarAircraftReport(bits, result);
                 break;
             case 14:
-                this._decodeTextMessage(bits, result);
+                this.decodeTextMessage(bits, result);
                 break;
             case 18:
-                this._decodeClassBPositionReport(bits, result);
+                this.decodeClassBPositionReport(bits, result);
                 break;
             case 19:
-                this._decodeExtendedClassBPositionReport(bits, result);
+                this.decodeExtendedClassBPositionReport(bits, result);
                 break;
             case 21:
-                this._decodeAidToNavigation(bits, result);
+                this.decodeAidToNavigation(bits, result);
                 break;
             case 24:
-                this._decodeStaticDataReport(bits, result);
+                this.decodeStaticDataReport(bits, result);
                 break;
             case 27:
-                this._decodeLongRangeBroadcast(bits, result);
+                this.decodeLongRangeBroadcast(bits, result);
                 break;
             default:
-                if (this.options.enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, this.getAisType(result.mtype), result.mmsi, input);
+                if (this.options.enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, MSG_TYPE[result.mtype], result.mmsi, input);
                 throw new Error('Invalid message type: ' + result.mtype);
         }
 
         return result;
     }
 
-    _decodeClassAPositionReport(bits: PayloadBits, res: AisParseResult) {
+    private decodeClassAPositionReport(bits: PayloadBits, res: AisParseResult) {
         res.class = 'A';
         res.nav = bits.getInt(38, 4);
 
         res.lon = bits.getLon(61);
         res.lat = bits.getLat(89);
-        if (!this._validatePosition(res.lon, res.lat)) {
+        if (!this.validatePosition(res.lon, res.lat)) {
             throw new Error('Invalid longitude/latitude in Class A position report');
         }
 
@@ -271,14 +273,14 @@ export class AisDecoder {
         res.smi = bits.getInt(143, 2);
     }
 
-    _decodeClassBPositionReport(bits: PayloadBits, res: AisParseResult) {
+    private decodeClassBPositionReport(bits: PayloadBits, res: AisParseResult) {
         res.class = 'B';
         res.repeat = bits.getInt(6, 2);
         res.accuracy = bits.getInt(56, 1);
 
         res.lon = bits.getLon(57);
         res.lat = bits.getLat(85);
-        if (!this._validatePosition(res.lon, res.lat)) {
+        if (!this.validatePosition(res.lon, res.lat)) {
             throw new Error('Invalid longitude/latitude in Class B position report');
         }
 
@@ -289,12 +291,12 @@ export class AisDecoder {
         res.dsc = bits.getBool(143);
     }
 
-    _decodeExtendedClassBPositionReport(bits: PayloadBits, res: AisParseResult) {
+    private decodeExtendedClassBPositionReport(bits: PayloadBits, res: AisParseResult) {
         res.class = 'B';
 
         res.lon = bits.getLon(57);
         res.lat = bits.getLat(85);
-        if (!this._validatePosition(res.lon, res.lat)) {
+        if (!this.validatePosition(res.lon, res.lat)) {
             throw new Error('Invalid longitude/latitude in Extended Class B position report');
         }
 
@@ -313,7 +315,7 @@ export class AisDecoder {
         res.wid = res.dimC + res.dimD;
     }
 
-    _decodeStaticVoyageData(bits: PayloadBits, res: AisParseResult) {
+    private decodeStaticVoyageData(bits: PayloadBits, res: AisParseResult) {
         res.class = 'A';
         res.ver = bits.getInt(38, 2);
         res.imo = bits.getInt(40, 30);
@@ -335,10 +337,12 @@ export class AisDecoder {
         res.wid = res.dimC + res.dimD;
     }
 
-    // Decode type 24 static data report which comes in multiple formats based on the specification.
-    // Note that `part` here is a message format (A/B) identifier rather than a message part number.
-    // Message format `B` also has two sub formats (mothership/dimensions)
-    _decodeStaticDataReport(bits: PayloadBits, res: AisParseResult) {
+    /**
+     * Decode type 24 static data report which comes in multiple formats based on the specification.
+     * Note that `part` here is a message format (A/B) identifier rather than a message part number.
+     * Message format `B` also has two sub formats (mothership/dimensions)
+     */
+    private decodeStaticDataReport(bits: PayloadBits, res: AisParseResult) {
         res.class = 'B';
         res.part = bits.getInt(38, 2);
 
@@ -372,20 +376,20 @@ export class AisDecoder {
         throw new Error('Invalid part number for static data report');
     }
 
-    _decodeBaseStationReport(bits: PayloadBits, res: AisParseResult) {
+    private decodeBaseStationReport(bits: PayloadBits, res: AisParseResult) {
         res.lon = bits.getLon(79);
         res.lat = bits.getLat(107);
-        if (!this._validatePosition(res.lon, res.lat)) {
+        if (!this.validatePosition(res.lon, res.lat)) {
             throw new Error('Invalid longitude/latitude in Base Station report');
         }
     }
 
-    _decodeSarAircraftReport(bits: PayloadBits, res: AisParseResult) {
+    private decodeSarAircraftReport(bits: PayloadBits, res: AisParseResult) {
         res.alt = bits.getInt(38, 12);
 
         res.lon = bits.getLon(61);
         res.lat = bits.getLat(89);
-        if (!this._validatePosition(res.lon, res.lat)) {
+        if (!this.validatePosition(res.lon, res.lat)) {
             throw new Error('Invalid longitude/latitude in SAR Aircraft report');
         }
 
@@ -394,13 +398,13 @@ export class AisDecoder {
         res.cog = bits.getInt(116, 12) / 10;
     }
 
-    _decodeAidToNavigation(bits: PayloadBits, res: AisParseResult) {
+    private decodeAidToNavigation(bits: PayloadBits, res: AisParseResult) {
         res.type = bits.getInt(38, 5);
         res.name = bits.getStr(43, 120) + bits.getStr(272);  // name + name extension
 
         res.lon = bits.getLon(164);
         res.lat = bits.getLat(192);
-        if (!this._validatePosition(res.lon, res.lat)) {
+        if (!this.validatePosition(res.lon, res.lat)) {
             throw new Error('Invalid longitude/latitude in Aid to Navigation report');
         }
 
@@ -414,19 +418,19 @@ export class AisDecoder {
         res.wid = res.dimC + res.dimD;
     }
 
-    _decodeTextMessage(bits: PayloadBits, res: AisParseResult) {
+    private decodeTextMessage(bits: PayloadBits, res: AisParseResult) {
         const text = bits.getStr(40);
         if (!text) throw new Error('Text message is empty');
         res.text = text;
     }
 
-    _decodeLongRangeBroadcast(bits: PayloadBits, res: AisParseResult) {
+    private decodeLongRangeBroadcast(bits: PayloadBits, res: AisParseResult) {
         res.nav = bits.getInt(40, 4);
 
         // lon/lat has different format than other messages
         res.lon = bits.getInt(44, 18) / 600;
         res.lat = bits.getInt(62, 17) / 600;
-        if (!this._validatePosition(res.lon, res.lat)) {
+        if (!this.validatePosition(res.lon, res.lat)) {
             throw new Error('Invalid longitude/latitude in Long Range Broadcast report');
         }
 
@@ -440,7 +444,7 @@ export class AisDecoder {
      * @param symbol The character prefix to use for validation.
      * @returns The message without symbol/checksum if valid, or null if invalid.
      */
-    _parseNmeaSentence(sentence: string, symbol = '!'): string | null {
+    private parseNmeaSentence(sentence: string, symbol = '!'): string | null {
         const start = sentence.indexOf(symbol) + 1;
         if (start !== 1) return null;
 
@@ -460,12 +464,14 @@ export class AisDecoder {
         return sentence.substring(start, asterisk);
     }
 
-    _validatePosition(lon, lat) {
+    private validatePosition(lon, lat) {
         return (Math.abs(lon) <= 180 && Math.abs(lat) <= 90);
     }
 
-    // Delete encoded undefined variables (i.e. sog will be undefined vs 102.3)
-    _cleanDecoded(result: AisParseResult) {
+    /**
+     * Delete encoded undefined variables (i.e. sog will be undefined vs 102.3)
+     */
+    private cleanDecoded(result: AisParseResult) {
         if (!this.options.cleanDecoded) return;
 
         if (result.sog === 102.3) {
@@ -481,9 +487,11 @@ export class AisDecoder {
         //todo: more needed here
     }
 
-    // Map standard property names to custom property names
-    _mapProperties(result: AisParseResult) {
-        const {propertyNames} = this.options;
+    /**
+     * Map standard property names to custom property names
+     */
+    private mapProperties(result: AisParseResult) {
+        const { propertyNames } = this.options;
         if (!propertyNames) return;
 
         for (const [key, value] of propertyNames) {
@@ -491,22 +499,6 @@ export class AisDecoder {
             result[value] = result[key];
             delete result[key];
         }
-    }
-
-    getNavStatus(nav: number) {
-        return NAV_STATUS[nav];
-    }
-
-    getAisType(mtype: number) {
-        return MSG_TYPE[mtype];
-    }
-
-    getVesselType(type: number) {
-        return VESSEL_TYPE[type];
-    }
-
-    getEriType(eri: number) {
-        return ERI_TYPE[eri] ?? eri;
     }
 }
 
