@@ -1,7 +1,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/wayofthefuture/ais-nmea-decoder/actions/workflows/CI.yaml/badge.svg)](https://github.com/wayofthefuture/ais-nmea-decoder/actions/workflows/CI.yaml)
 [![codecov](https://codecov.io/gh/wayofthefuture/ais-nmea-decoder/graph/badge.svg)](https://codecov.io/gh/wayofthefuture/ais-nmea-decoder)
-![NPM Version](https://img.shields.io/npm/v/ais-nmea-decoder)
+[![NPM Version](https://img.shields.io/npm/v/ais-nmea-decoder)](https://www.npmjs.com/package/ais-nmea-decoder)
 
 ### *Currently under development...
 
