@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 */
 
-import {MSG_TYPE, NAV_STATUS, VESSEL_TYPE, ERI_TYPE} from './constants';
+import {MSG_TYPE} from './constants';
 import {checkQuality, configureQuality} from './check-quality';
 import {PayloadBits} from './payload-bits';
 import type {AisParseResult, QualityOptions} from './definitions';
@@ -246,7 +246,7 @@ export class AisDecoder {
                 this._decodeLongRangeBroadcast(bits, result);
                 break;
             default:
-                if (this.options.enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, this.getAisType(result.mtype), result.mmsi, input);
+                if (this.options.enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, MSG_TYPE[result.mtype], result.mmsi, input);
                 throw new Error('Invalid message type: ' + result.mtype);
         }
 
@@ -491,22 +491,6 @@ export class AisDecoder {
             result[value] = result[key];
             delete result[key];
         }
-    }
-
-    getNavStatus(nav: number) {
-        return NAV_STATUS[nav];
-    }
-
-    getAisType(mtype: number) {
-        return MSG_TYPE[mtype];
-    }
-
-    getVesselType(type: number) {
-        return VESSEL_TYPE[type];
-    }
-
-    getEriType(eri: number) {
-        return ERI_TYPE[eri] ?? eri;
     }
 }
 
