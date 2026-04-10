@@ -2,6 +2,7 @@
 [![CI](https://github.com/wayofthefuture/ais-nmea-decoder/actions/workflows/CI.yaml/badge.svg)](https://github.com/wayofthefuture/ais-nmea-decoder/actions/workflows/CI.yaml)
 [![codecov](https://codecov.io/gh/wayofthefuture/ais-nmea-decoder/graph/badge.svg)](https://codecov.io/gh/wayofthefuture/ais-nmea-decoder)
 [![NPM Version](https://img.shields.io/npm/v/ais-nmea-decoder)](https://www.npmjs.com/package/ais-nmea-decoder)
+[![Static Badge](https://img.shields.io/badge/https%3A%2F%2Fwayofthefuture.github.io%2Fais-nmea-decoder%2F?label=Documentation)](https://wayofthefuture.github.io/ais-nmea-decoder/)
 
 ### *Currently under development...
 
