@@ -1,0 +1,59 @@
+name: Create bump version PR
+
+# Opens a pull request that bumps the version in package.json.
+# Merging that pull request triggers Release, which publishes to npm.
+
+on:
+    workflow_dispatch:
+        inputs:
+            release_type:
+                description: 'Type of version bump'
+                type: choice
+                required: true
+                default: patch
+                options:
+                    - patch
+                    - minor
+                    - major
+
+permissions:
+    contents: write
+    pull-requests: write
+
+jobs:
+    bump-version-pr:
+        name: Bump version PR
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  ref: main
+
+            - name: Use Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version-file: '.nvmrc'
+                  cache: 'npm'
+
+            - name: Install and verify
+              run: |
+                  npm ci
+                  npm run typecheck
+                  npm run build
+
+            - name: Bump version
+              id: bump
+              run: |
+                  npm version --commit-hooks false --git-tag-version false ${{ inputs.release_type }}
+                  echo "version=$(npm pkg get version | tr -d '\"')" >> "$GITHUB_OUTPUT"
+
+            - name: Create pull request
+              uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+              with:
+                  commit-message: Bump version to ${{ steps.bump.outputs.version }}
+                  branch: bump-version-to-${{ steps.bump.outputs.version }}
+                  title: Bump version to ${{ steps.bump.outputs.version }}
+                  body: |
+                      Version bump to `${{ steps.bump.outputs.version }}`.
+
+                      Merging this pull request tags the release, publishes to npm and creates the GitHub release.
