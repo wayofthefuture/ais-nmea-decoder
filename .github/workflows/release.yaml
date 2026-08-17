@@ -1,27 +1,40 @@
 name: Release
 
+# Runs on every push to main, but only publishes when the version in
+# package.json actually changed - i.e. when a bump version PR was merged.
+
 on:
-    workflow_dispatch:
-        inputs:
-            release_type:
-                description: 'Version bump'
-                type: choice
-                required: true
-                default: patch
-                options:
-                    - patch
-                    - minor
-                    - major
+    push:
+        branches: [main]
 
 permissions:
     contents: write
     id-token: write # Required for npm trusted publishing (OIDC)
 
 jobs:
+    release-check:
+        name: Check if version changed
+        runs-on: ubuntu-latest
+        outputs:
+            publish: ${{ steps.check.outputs.changed }}
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+
+            - name: Check if version has been updated
+              id: check
+              uses: EndBug/version-check@095362f3cd50f690c8fa0e6afeea81834bd8d320 # v3.0.0
+
     release:
+        name: Release
+        needs: release-check
+        if: ${{ needs.release-check.outputs.publish == 'true' }}
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
 
             - name: Use Node.js
               uses: actions/setup-node@v6
@@ -34,22 +47,24 @@ jobs:
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
 
+            - name: Get version
+              id: version
+              run: |
+                  version=$(npm pkg get version | tr -d '"')
+                  echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
             - name: Install and build
               run: |
                   npm ci
                   npm run build
 
-            - name: Bump version
-              id: bump
-              run: |
-                  new_version=$(npm version ${{ inputs.release_type }} -m "Release %s")
-                  echo "version=$new_version" >> "$GITHUB_OUTPUT"
-
-            - name: Push commit and tag
-              run: git push --follow-tags
-
             - name: Publish to npm
-              run: npm publish
+              run: npm publish --access=public
+
+            - name: Push tag
+              run: |
+                  git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+                  git push origin "${{ steps.version.outputs.tag }}"
 
             - name: Pack the package
               run: npm pack
@@ -57,6 +72,6 @@ jobs:
             - name: Create release and upload tarball
               uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
               with:
-                  tag_name: ${{ steps.bump.outputs.version }}
+                  tag_name: ${{ steps.version.outputs.tag }}
                   files: '*.tgz'
                   generate_release_notes: true
