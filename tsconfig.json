@@ -1,9 +1,8 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
+  // Emit is handled by rolldown; tsc is only used for type checking
+  "include": ["src", "rolldown.config.ts"],
   "compilerOptions": {
-    // File Layout
-    "rootDir": "./src",
-    "outDir": "./dist",
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "esnext",
