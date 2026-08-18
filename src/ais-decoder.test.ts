@@ -7,8 +7,8 @@ https://www.apache.org/licenses/LICENSE-2.0
 */
 
 import {describe, it, expect} from 'vitest';
-import {AisDecoder, isNumeric} from './ais-decoder';
-import type {AisParseResult} from './definitions';
+import {AisDecoder, isDecoded, isNumeric} from './ais-decoder';
+import type {AisErrorResult, AisPendingMessage, AisSuccessResult} from './definitions';
 
 const testCases = {
     msg24a: { // class B static info
@@ -211,33 +211,36 @@ const testCases = {
 
 const decoder = new AisDecoder();
 
-for (const [name, testCase] of Object.entries(testCases)) {
-    describe(name, () => {
-        let result: AisParseResult;
+const singlePartMessages = Object.entries(testCases).filter(([_, testCase]) => !Array.isArray(testCase.raw));
+const twoPartMessages = Object.entries(testCases).filter(([_, testCase]) => Array.isArray(testCase.raw));
 
-        //two-part message
-        if (Array.isArray(testCase.raw)) {
-            result = decoder.parse(testCase.raw[0]!);
-            expect(result.error).toBeUndefined();
-            expect(result.pending).toBe(true);
-            result = decoder.parse(testCase.raw[1]!);
-        } else {
-            result = decoder.parse(testCase.raw);
-        }
-
-        it('should be valid', () => {
-            expect(result.error).toBeUndefined();
-        });
-
-        for (const [field, value] of Object.entries(testCase)) {
-            if (field === 'raw') continue;
-
-            it(`should decode ${field} correctly`, () => {
+describe("single-part messages", () => {
+    for (const [name, testCase] of singlePartMessages) {
+        it(`should decode ${name} correctly`, () => {
+            const result = decoder.parse(testCase.raw as string);
+            expect(isDecoded(result)).toBe(true);
+            for (const [field, value] of Object.entries(testCase)) {
+                if (field === 'raw') continue;
                 expect(value).toBe(result[field]);
-            });
-        }
-    });
-}
+            }
+        });
+    }
+});
+
+describe("two-part messages", () => {
+    for (const [name, testCase] of twoPartMessages) {
+        it(`should decode ${name} correctly`, () => {
+            let result = decoder.parse(testCase.raw[0]!) as AisPendingMessage;
+            expect(result.pending).toBe(true);
+            let finalResult = decoder.parse(testCase.raw[1]!) as AisSuccessResult;
+            expect(isDecoded(finalResult)).toBe(true);
+            for (const [field, value] of Object.entries(testCase)) {
+                if (field === 'raw') continue;
+                expect(value).toBe(finalResult[field]);
+            }
+        });
+    }
+});
 
 describe('mapProperties', () => {
     it('should map properties according to the propertyNames', () => {
@@ -248,7 +251,7 @@ describe('mapProperties', () => {
                 ['cog', 'courseOverGround']
             ]
         });
-        const decoded = decoder.parse(testCases.msg1.raw);
+        const decoded = decoder.parse(testCases.msg1.raw) as AisSuccessResult;
 
         expect(decoded["vesselId"]).toBe(205035000);
         expect(decoded["speedOverGround"]).toBe(0);
@@ -274,89 +277,89 @@ describe('mapProperties', () => {
 
 describe('error cases', () => {
     it('should return error for invalid sentence', () => {
-        const result = decoder.parse(123 as any);
+        const result = decoder.parse(123 as any) as AisErrorResult;
         expect(result.error).toBe('Sentence is not of type string.');
     });
 
     it('should return error for empty sentence', () => {
-        const result = decoder.parse('');
+        const result = decoder.parse('') as AisErrorResult;
         expect(result.error).toBe('Sentence is empty or spaces.');
     });
 
     it('should return error for invalid checksum', () => {
-        const result = decoder.parse('!invalid-checksum*00');
+        const result = decoder.parse('!invalid-checksum*00') as AisErrorResult;
         expect(result.error).toBe('Sentence is invalid or fails checksum.');
     });
 
     it('should return error for invalid total fragment count', () => {
-        const result = decoder.parse('!1,2,3,4,5,6,7,8*24');
+        const result = decoder.parse('!1,2,3,4,5,6,7,8*24') as AisErrorResult;
         expect(result.error).toBe('Sentence contains invalid number of parts.');
     });
 
     it('should return error for invalid message prefix', () => {
-        const result = decoder.parse('!invalid-prefix,,,,,,0*7C');
+        const result = decoder.parse('!invalid-prefix,,,,,,0*7C') as AisErrorResult;
         expect(result.error).toBe('Invalid message prefix: invalid-prefix');
     });
 
     it('should return error for invalid total fragment count (not a number)', () => {
-        const result = decoder.parse('!AIVDM,not-a-number,,,,,*40');
+        const result = decoder.parse('!AIVDM,not-a-number,,,,,*40') as AisErrorResult;
         expect(result.error).toBe('Invalid total fragment count.');
     });
 
     it('should return error for invalid fragment number (not a number)', () => {
-        const result = decoder.parse('!AIVDM,1,not-a-number,,,,*71');
+        const result = decoder.parse('!AIVDM,1,not-a-number,,,,*71')  as AisErrorResult;
         expect(result.error).toBe('Invalid fragment number.');
     });
 
     it('should return error for invalid payload', () => {
-        const result = decoder.parse('!AIVDM,1,1,,,,*57');
+        const result = decoder.parse('!AIVDM,1,1,,,,*57') as AisErrorResult;
         expect(result.error).toBe('Payload is empty.');
     });
 
     it('should return error for invalid total fragment count > 2', () => {
-        const result = decoder.parse('!AIVDM,3,1,,,hi,*54');
+        const result = decoder.parse('!AIVDM,3,1,,,hi,*54') as AisErrorResult;
         expect(result.error).toBe('Invalid total fragment count.');
     });
 
     it('should return error for invalid fragment number > 2', () => {
-        const result = decoder.parse('!AIVDM,2,3,,,hi,*57');
+        const result = decoder.parse('!AIVDM,2,3,,,hi,*57') as AisErrorResult;
         expect(result.error).toBe('Invalid fragment number for two-part message.');
     });
 
     it('should return error in case of invalid message type', () => {
-        const result = decoder.parse(`!AIVDM,1,1,1,1,w,*20`); // w is mtype 63
+        const result = decoder.parse(`!AIVDM,1,1,1,1,w,*20`) as AisErrorResult; // w is mtype 63
         expect(result.error).toBe('Invalid message type: 63');
     })
 })
 
 describe('error cases for seconds session', () => {
     it('should return missing part 1 when sending only the second part', () => {
-        const result = decoder.parse('!AIVDM,2,2,,,hi,*56');
+        const result = decoder.parse('!AIVDM,2,2,,,hi,*56') as AisErrorResult;
         expect(result.error).toBe('Part 1 missing from two-part message.');
     })
 
     it('should return message too old when there is a time gap in the sequence', async () => {
         decoder.parse('!AIVDM,2,1,,,hi,*55');
         await new Promise(resolve => setTimeout(resolve, 4000)); // 4 seconds delay
-        const result2 = decoder.parse('!AIVDM,2,2,,,hi,*56');
+        const result2 = decoder.parse('!AIVDM,2,2,,,hi,*56') as AisErrorResult;
         expect(result2.error).toBe('Part 2 message is too old relative to part 1.');
     })
 
     it('should return error when second message prefix does not match the first one', () => {
         decoder.parse('!AIVDM,2,1,,,hi,*55');
-        const result2 = decoder.parse('!AIVDO,2,2,,,hi,*54');
+        const result2 = decoder.parse('!AIVDO,2,2,,,hi,*54') as AisErrorResult;
         expect(result2.error).toBe('Part 2 message does not match part 1 message prefix.');
     })
 
     it('should return error when second message sequence id does not match the first one', () => {
         decoder.parse('!AIVDM,2,1,seq1,,hi,*03');
-        const result2 = decoder.parse('!AIVDM,2,2,seq2,,hi,*03');
+        const result2 = decoder.parse('!AIVDM,2,2,seq2,,hi,*03') as AisErrorResult;
         expect(result2.error).toBe('Part 2 message sequence id does not match part 1 sequence id.');
     })
 
     it('should return error when second message channel id does not match the first one', () => {
         decoder.parse('!AIVDM,2,1,seq1,channel1,hi,*51');
-        const result2 = decoder.parse('!AIVDM,2,2,seq1,channel2,hi,*51');
+        const result2 = decoder.parse('!AIVDM,2,2,seq1,channel2,hi,*51') as AisErrorResult;
         expect(result2.error).toBe('Part 2 message channel does not match part 1 channel.');
     })
 })

@@ -1,4 +1,4 @@
-import type {AisParseResult, QualityOptions} from './definitions';
+import type {AisSuccessResult, QualityOptions} from './definitions';
 
 const dynamicMovingTimeout = 600_000;     // 10 minutes
 const dynamicStoppedTimeout = 1_800_000;  // 30 minutes
@@ -23,7 +23,7 @@ export function configureQuality(options: QualityOptions = {}) {
     maxDistanceNm = options.maxDistanceNm ?? maxDistanceNm;
 }
 
-export function checkQuality(result: AisParseResult) {
+export function checkQuality(result: AisSuccessResult) {
     if (typeof result.lon === 'number') {
         checkDynamicResult(result);
     } else {
@@ -40,7 +40,7 @@ export function checkQuality(result: AisParseResult) {
  *   2. Reset the count if more than dynamic timeout since last transmission, treating it as a new contact.
  *   3. Reject positions that jump more than maxDistanceNm from the previous position (except sar aircraft).
  */
-export function checkDynamicResult(result: AisParseResult) {
+export function checkDynamicResult(result: AisSuccessResult) {
     if (requiredDynamic === 0) return true;
 
     const {mmsi, mtype, lon, lat, sog} = result;
@@ -91,7 +91,7 @@ export function checkDynamicResult(result: AisParseResult) {
  *   1. Skip the first N transmissions (requiredStatic) to filter out stale or initial data from a newly received vessel.
  *   2. Reset the count if more than staticTimeout since last transmission, treating it as a new contact.
  */
-export function checkStaticResult(result: AisParseResult) {
+export function checkStaticResult(result: AisSuccessResult) {
     if (requiredStatic === 0) return true;
 
     const {mmsi} = result;
