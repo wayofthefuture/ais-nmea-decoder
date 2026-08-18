@@ -9,7 +9,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 import {MSG_TYPE} from './constants';
 import {checkQuality, configureQuality} from './check-quality';
 import {PayloadBits} from './payload-bits';
-import type {AisParsedMessage, AisParseResult, AisSuccessResult, QualityOptions} from './definitions';
+import type {AisParsedMessage, AisParseResult, AisPayloadMessage, AisSuccessResult, QualityOptions} from './definitions';
 
 const textEncoder = new TextEncoder();
 
@@ -18,10 +18,6 @@ export type AisDecoderOptions = {
      * Enable logging of unknown message types to the console.
      */
     enableLogging?: boolean;
-    /**
-     * Delete encoded undefined variables (i.e. sog will be undefined vs 102.3).
-     */
-    cleanDecoded?: boolean;
     /**
      * Rename default property names to custom property names.
      */
@@ -42,9 +38,13 @@ export type AisMessageData = {
     rawPayload: string;
 }
 
+/** Part 1 of a two-part message held until part 2 arrives, stamped with its receive time */
+type SessionData = AisMessageData & {
+    receive: number;
+}
+
 export const defaultOptions = {
     enableLogging: false,
-    cleanDecoded: false,
     propertyNames: null,
     qualityCheck: false,
     qualityOptions: {
@@ -54,8 +54,12 @@ export const defaultOptions = {
     }
 };
 
+/**
+ * Determine if the result is a successful parse and narrow the type to the {@link AisSuccessResult}
+ * @param result
+ */
 export function isDecoded(result: AisParseResult): result is AisSuccessResult {
-    return !('error' in result) && !('pending' in result);
+    return result.status === 'decoded';
 }
 
 /**
@@ -64,10 +68,10 @@ export function isDecoded(result: AisParseResult): result is AisSuccessResult {
  */
 export class AisDecoder {
     private options: Required<AisDecoderOptions>;
-    private session: AisMessageData & { receive?: number } | undefined;
+    private session: SessionData | undefined;
 
     constructor(options?: AisDecoderOptions) {
-        this.options = { ...defaultOptions, ...options };
+        this.options = {...defaultOptions, ...options};
         configureQuality(this.options.qualityOptions);
     }
 
@@ -79,18 +83,16 @@ export class AisDecoder {
     parse(input: string): AisParseResult {
         try {
             const data = this.getMessageData(input);
-            const result = this.parseMessage(data);
-            if ('pending' in result) return result;
+            const parsed = this.parseMessage(data);
+            if (parsed.status === 'pending') return parsed;
 
-            this.decodeMessage(result as AisSuccessResult, input);
-            if (this.options.qualityCheck) checkQuality(result as AisSuccessResult);
+            const result = this.decodeMessage(parsed, input);
+            if (this.options.qualityCheck) checkQuality(result);
+            this.mapProperties(result);
 
-            this.cleanDecoded(result as AisSuccessResult);
-            this.mapProperties(result as AisSuccessResult);
-
-            return result as AisSuccessResult;
+            return result;
         } catch (error) {
-            return {error: error.message};
+            return {status: 'error', error: error.message};
         }
     }
 
@@ -115,7 +117,9 @@ export class AisDecoder {
             throw new Error('Sentence contains invalid number of parts.');
         }
 
-        let [messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload] = parts;
+        // Safe to assert: the length check above guarantees all 7 elements exist
+        let [messagePrefix, totalFragments, currentFragment, sequenceId, channel, rawPayload] =
+            parts as [string, string, string, string, string, string, string];
 
         // AIVDM = standard ais message, AIVDO = own vessel through pilot plug
         if (messagePrefix !== 'AIVDM' && messagePrefix !== 'AIVDO') {
@@ -136,10 +140,10 @@ export class AisDecoder {
 
         return {
             messagePrefix,
-            totalFragments: +totalFragments!,
-            currentFragment: +currentFragment!,
-            sequenceId: sequenceId!,
-            channel: channel!,
+            totalFragments: +totalFragments,
+            currentFragment: +currentFragment,
+            sequenceId,
+            channel,
             rawPayload
         };
     }
@@ -151,6 +155,7 @@ export class AisDecoder {
         // one-part message
         if (totalFragments === 1) {
             return {
+                status: 'decoded',
                 payload: textEncoder.encode(rawPayload),
                 channel
             };
@@ -161,39 +166,40 @@ export class AisDecoder {
 
         // parse two-part message - store data for validation - always overwrite session on new two-part sequence
         if (currentFragment === 1) {
-            this.session = data;
+            this.session = data as SessionData;  //no clone on the hot-path
             this.session.receive = Date.now();
-            return { 
-                pending: true, 
-                channel 
+            return {
+                status: 'pending',
+                channel
             };
         }
         if (currentFragment !== 2) {
             throw new Error('Invalid fragment number for two-part message.');
         }
 
-        const error = this.validateTwoPart(this.session!, data);
+        const session = this.session;
+        if (!session) {
+            throw new Error('Part 1 missing from two-part message.');
+        }
+
+        const error = this.validateTwoPart(session, data);
         if (error) {
             this.session = undefined;
             throw new Error(error);
         }
 
         // encode combined part 1 and part 2 message payloads
-        let payload = textEncoder.encode(this.session!.rawPayload + rawPayload);
+        let payload = textEncoder.encode(session.rawPayload + rawPayload);
         this.session = undefined;
-        return { payload, channel };
+        return {status: 'decoded', payload, channel};
     }
 
     /**
      * Validate a two-part message (type 5, 19) and ensure that parts from different vessels aren't mis-matched
      */
-    private validateTwoPart(session: AisMessageData & { receive?: number }, data: AisMessageData) {
-        if (!session) {
-            return 'Part 1 missing from two-part message.';
-        }
-
+    private validateTwoPart(session: SessionData, data: AisMessageData) {
         // implement a timeout since we have no absolute way to determine if the 2nd message pairs with the 1st
-        if (Date.now() - session.receive! > 3_000) {
+        if (Date.now() - session.receive > 3_000) {
             return 'Part 2 message is too old relative to part 1.';
         }
 
@@ -212,8 +218,9 @@ export class AisDecoder {
         return false;
     }
 
-    private decodeMessage(result: AisSuccessResult, input: string) {
-        const bits = new PayloadBits(result.payload!);
+    private decodeMessage(message: AisPayloadMessage, input: string): AisSuccessResult {
+        const result = message as AisSuccessResult;
+        const bits = new PayloadBits(result.payload);
 
         result.mtype = bits.getInt(0, 6);
         result.repeat = bits.getInt(6, 2);
@@ -475,33 +482,14 @@ export class AisDecoder {
     }
 
     /**
-     * Delete encoded undefined variables (i.e. sog will be undefined vs 102.3)
-     */
-    private cleanDecoded(result: AisSuccessResult) {
-        if (!this.options.cleanDecoded) return;
-
-        if (result.sog === 102.3) {
-            delete result.sog;
-        }
-        if (result.cog === 511) {
-            delete result.cog;
-        }
-        if (result.hdg === 511) {
-            delete result.hdg;
-        }
-
-        //todo: more needed here
-    }
-
-    /**
      * Map standard property names to custom property names
      */
     private mapProperties(result: AisSuccessResult) {
-        const { propertyNames } = this.options;
+        const {propertyNames} = this.options;
         if (!propertyNames) return;
 
         for (const [key, value] of propertyNames) {
-            if (result[key] === undefined) continue;
+            if (key === 'status' || result[key] === undefined) continue;
             result[value] = result[key];
             delete result[key];
         }
@@ -513,6 +501,6 @@ export class AisDecoder {
  * @param val The value to check
  * @returns True if the value is numeric, false otherwise
  */
-export function isNumeric(val: any) {
-    return (!isNaN(parseFloat(val)) && isFinite(val));
+export function isNumeric(val: unknown): val is string | number {
+    return (!isNaN(parseFloat(val as string)) && isFinite(val as number));
 }
