@@ -1,6 +1,6 @@
 {
   "name": "ais-nmea-decoder",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Decode AIS and NMEA messages",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
