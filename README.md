@@ -4,8 +4,6 @@
 [![NPM Version](https://img.shields.io/npm/v/ais-nmea-decoder)](https://www.npmjs.com/package/ais-nmea-decoder)
 [![Static Badge](https://img.shields.io/badge/https%3A%2F%2Fwayofthefuture.github.io%2Fais-nmea-decoder%2F?label=Documentation)](https://wayofthefuture.github.io/ais-nmea-decoder/)
 
-### *Currently under development...
-
 Decode AIS NMEA messages into structured objects.
 
 This project originates from 'ggencoder' and aims to modernize the decoding of AIS/NMEA messages with a focus on data integrity, maintainability, and performance.
@@ -30,31 +28,7 @@ npm install ais-nmea-decoder
 
 ## Usage
 
-```js
-import {AisDecoder, isDecoded} from 'ais-nmea-decoder';
-
-const decoder = new AisDecoder();
-
-let result = decoder.parse('!AIVDM,1,1,,B,15MqhT0026:Otl8EoR4<H?vL0<1h,0*2C');
-if (!isDecoded(result)) return; // error, or multi-part message awaiting next fragment
-
-// isDecoded is a type guard - result is narrowed to AisSuccessResult from here on
-console.log(result);
-// { status: 'decoded', channel, mtype, mmsi, lat, lon, sog, cog, ... }
-```
-
-Two-part messages (e.g. type 5) are handled automatically - feed each sentence in order:
-
-```js
-let result = decoder.parse('!AIVDM,2,1,3,B,59NWwC@2>6th7Q`7800858l8Dd00000000000018Cp:A:6a=0G@TQCADR0EQ,0*09');
-// result.status === 'pending'
-
-result = decoder.parse('!AIVDM,2,2,3,B,CP000000000,2*37');
-console.log(result);
-// { status: 'decoded', channel, mtype, mmsi, name, sign, imo, dest, draft, ... }
-```
-
-Example parser function that could be used to read from a stream:
+Feed each sentence in order - two-part messages (e.g. type 5) are handled automatically:
 
 ```js
 import {AisDecoder, isDecoded} from 'ais-nmea-decoder';
@@ -63,14 +37,13 @@ const decoder = new AisDecoder();
 
 function parseLine(line) {
     const result = decoder.parse(line);
-    if (result.status === 'error') return;    // log error here if desired
-    if (result.status === 'pending') return;  // wait for next message fragment
+    if (!isDecoded(result)) return;       // result type is narrowed to `AisSuccessResult` here
 
-    // or replace both checks above with: if (!isDecoded(result)) return;
-    // either way result is narrowed to AisSuccessResult here
-    console.log(result.mmsi, result.lat, result.lon);
+    console.log(result);                  // {status: 'decoded', channel, mtype, mmsi, lat, lon, ...}
     return result;
 }
+
+parseLine('!AIVDM,1,1,,B,15MqhT0026:Otl8EoR4<H?vL0<1h,0*2C');
 ```
 
 ## Options
@@ -78,7 +51,6 @@ function parseLine(line) {
 ```js
 const decoder = new AisDecoder({
     enableLogging: false,    // (default false) log unknown message types to console
-    cleanDecoded: true,      // (default false) remove undefined/invalid fields from result
     propertyNames: [         // (default null) rename default property names to custom names
         ['sog', 'speed'],
         ['cog', 'course']

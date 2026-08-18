@@ -19,10 +19,6 @@ export type AisDecoderOptions = {
      */
     enableLogging?: boolean;
     /**
-     * Delete encoded undefined variables (i.e. sog will be undefined vs 102.3).
-     */
-    cleanDecoded?: boolean;
-    /**
      * Rename default property names to custom property names.
      */
     propertyNames?: [string, string][] | null;
@@ -49,7 +45,6 @@ type SessionData = AisMessageData & {
 
 export const defaultOptions = {
     enableLogging: false,
-    cleanDecoded: false,
     propertyNames: null,
     qualityCheck: false,
     qualityOptions: {
@@ -93,8 +88,6 @@ export class AisDecoder {
 
             const result = this.decodeMessage(parsed, input);
             if (this.options.qualityCheck) checkQuality(result);
-
-            this.cleanDecoded(result);
             this.mapProperties(result);
 
             return result;
@@ -486,25 +479,6 @@ export class AisDecoder {
 
     private validatePosition(lon: number, lat: number): boolean {
         return (Math.abs(lon) <= 180 && Math.abs(lat) <= 90);
-    }
-
-    /**
-     * Delete encoded undefined variables (i.e. sog will be undefined vs 102.3)
-     */
-    private cleanDecoded(result: AisSuccessResult) {
-        if (!this.options.cleanDecoded) return;
-
-        if (result.sog === 102.3) {
-            delete result.sog;
-        }
-        if (result.cog === 511) {
-            delete result.cog;
-        }
-        if (result.hdg === 511) {
-            delete result.hdg;
-        }
-
-        //todo: more needed here
     }
 
     /**
