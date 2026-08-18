@@ -1,18 +1,32 @@
 
-export type AisParseResult = {
-    // state data
-    payload?: Uint8Array;
-    pending?: boolean;
-    error?: string;
-    // common fields
+export type AisPendingMessage = {
+    status: 'pending';
     /** VHF channel (A or B) */
-    channel?: string;
+    channel: string;
+}
+
+export type AisPayloadMessage = {
+    status: 'decoded';
+    /** VHF channel (A or B) */
+    channel: string;
+    payload: Uint8Array;
+};
+
+export type AisParsedMessage = AisPayloadMessage | AisPendingMessage;
+
+export type AisErrorResult = {
+    status: 'error';
+    error: string;
+}
+
+export type AisSuccessResult = AisPayloadMessage & {
+    // common fields
     /** Message type number */
     mtype?: number;
     /** Repeat indicator */
     repeat?: number;
     /** Maritime Mobile Service Identity */
-    mmsi?: number;
+    mmsi: number;
     // message specific fields
     /** Vessel class (`A` or `B`) | 1–3, 5, 18, 19, 24 | */
     class?: string;
@@ -81,6 +95,8 @@ export type AisParseResult = {
     /** Safety - related text | 14 | */
     text?: string;
 }
+
+export type AisParseResult = AisPendingMessage | AisSuccessResult | AisErrorResult;
 
 export type QualityOptions = {
     /**
