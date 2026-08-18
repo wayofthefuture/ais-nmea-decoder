@@ -231,7 +231,7 @@ describe("two-part messages", () => {
     for (const [name, testCase] of twoPartMessages) {
         it(`should decode ${name} correctly`, () => {
             let result = decoder.parse(testCase.raw[0]!) as AisPendingMessage;
-            expect(result.pending).toBe(true);
+            expect(result.status).toBe('pending');
             let finalResult = decoder.parse(testCase.raw[1]!) as AisSuccessResult;
             expect(isDecoded(finalResult)).toBe(true);
             for (const [field, value] of Object.entries(testCase)) {
@@ -367,13 +367,13 @@ describe('error cases for seconds session', () => {
 describe('isNumeric', () => {
     for (const value of ['0', 0, '1', 1, '1.1', 1.1, '-1.1', -1.1]) {
         it(`should return true for ${JSON.stringify(value)}`, () => {
-            expect(isNumeric(value as any)).toBe(true);
+            expect(isNumeric(value)).toBe(true);
         });
     }
 
     for (const value of [null, undefined, 'a123', '123.a', '', ' ', NaN, Infinity, -Infinity]) {
         it(`should return false for ${JSON.stringify(value)}`, () => {
-            expect(isNumeric(value as any)).toBe(false);
+            expect(isNumeric(value)).toBe(false);
         });
     }
 })

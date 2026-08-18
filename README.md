@@ -31,42 +31,43 @@ npm install ais-nmea-decoder
 ## Usage
 
 ```js
-import {AisDecoder} from 'ais-nmea-decoder';
+import {AisDecoder, isDecoded} from 'ais-nmea-decoder';
 
 const decoder = new AisDecoder();
 
 let result = decoder.parse('!AIVDM,1,1,,B,15MqhT0026:Otl8EoR4<H?vL0<1h,0*2C');
-if (result.error) return;
-if (result.pending) return; // multi-part message awaiting next fragment
+if (!isDecoded(result)) return; // error, or multi-part message awaiting next fragment
 
+// isDecoded is a type guard - result is narrowed to AisSuccessResult from here on
 console.log(result);
-// { channel, mtype, mmsi, lat, lon, sog, cog, ... }
+// { status: 'decoded', channel, mtype, mmsi, lat, lon, sog, cog, ... }
 ```
 
 Two-part messages (e.g. type 5) are handled automatically - feed each sentence in order:
 
 ```js
 let result = decoder.parse('!AIVDM,2,1,3,B,59NWwC@2>6th7Q`7800858l8Dd00000000000018Cp:A:6a=0G@TQCADR0EQ,0*09');
-// result.pending === true
+// result.status === 'pending'
 
 result = decoder.parse('!AIVDM,2,2,3,B,CP000000000,2*37');
 console.log(result);
-// { channel, mtype, mmsi, name, sign, imo, dest, draft, ... }
+// { status: 'decoded', channel, mtype, mmsi, name, sign, imo, dest, draft, ... }
 ```
 
 Example parser function that could be used to read from a stream:
 
 ```js
-import {AisDecoder} from 'ais-nmea-decoder';
+import {AisDecoder, isDecoded} from 'ais-nmea-decoder';
 
 const decoder = new AisDecoder();
 
 function parseLine(line) {
     const result = decoder.parse(line);
-    if (result.error) return;    // log error here if desired
-    if (result.pending) return;  // wait for next message fragment
+    if (result.status === 'error') return;    // log error here if desired
+    if (result.status === 'pending') return;  // wait for next message fragment
 
-    // result is a fully decoded message
+    // or replace both checks above with: if (!isDecoded(result)) return;
+    // either way result is narrowed to AisSuccessResult here
     console.log(result.mmsi, result.lat, result.lon);
     return result;
 }

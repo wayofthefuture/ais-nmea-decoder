@@ -1,11 +1,12 @@
 
 export type AisPendingMessage = {
+    status: 'pending';
     /** VHF channel (A or B) */
     channel: string;
-    pending: true;
 }
 
 export type AisPayloadMessage = {
+    status: 'decoded';
     /** VHF channel (A or B) */
     channel: string;
     payload: Uint8Array;
@@ -14,6 +15,7 @@ export type AisPayloadMessage = {
 export type AisParsedMessage = AisPayloadMessage | AisPendingMessage;
 
 export type AisErrorResult = {
+    status: 'error';
     error: string;
 }
 
