@@ -50,13 +50,16 @@ parseLine('!AIVDM,1,1,,B,15MqhT0026:Otl8EoR4<H?vL0<1h,0*2C');
 
 ```js
 const decoder = new AisDecoder({
-    enableLogging: false,    // (default false) log unknown message types to console
-    propertyNames: [         // (default null) rename default property names to custom names
+    enableLogging: false,     // (default false) log unknown message types to console
+    mapPropertyNames: true,   // (default false) rename properties according to `propertyMap`
+    propertyMap: [            // (default null) rename default property names to custom names
         ['sog', 'speed'],
         ['cog', 'course']
     ],
 });
 ```
+
+The decoder uses short field names (`sog`, `cog`, `hdg`, ...) to keep results compact. If your application expects different names — for example to match an existing database schema or API contract — set `mapPropertyNames: true` and provide a `propertyMap` of `[default, custom]` pairs. Each decoded result will then carry the custom name in place of the default; pairs whose default name is not present in a given message are simply skipped.
 
 ## Supported Message Types
 
@@ -75,7 +78,7 @@ Every result includes these **common fields**:
 
 **Additional fields by message type:**
 
-Note: use the `propertyNames` option to rename default field names.
+Note: enable the `mapPropertyNames` option to rename default field names according to `propertyMap`.
 
 | Field | Type | Description | Message Types |
 |-------|------|-------------|---------------|

@@ -243,9 +243,10 @@ describe("two-part messages", () => {
 });
 
 describe('mapProperties', () => {
-    it('should map properties according to the propertyNames', () => {
+    it('should map properties according to the propertyMap', () => {
         const decoder = new AisDecoder({
-            propertyNames: [
+            mapPropertyNames: true,
+            propertyMap: [
                 ['mmsi', 'vesselId'],
                 ['sog', 'speedOverGround'],
                 ['cog', 'courseOverGround']
@@ -263,7 +264,8 @@ describe('mapProperties', () => {
 
     it('should skip mapping for undefined properties', () => {
         const decoder = new AisDecoder({
-            propertyNames: [
+            mapPropertyNames: true,
+            propertyMap: [
                 ['mmsi', 'vesselId'],
                 ['nonExistent', 'renamed']
             ]
@@ -272,6 +274,18 @@ describe('mapProperties', () => {
 
         expect(decoded["vesselId"]).toBe(205035000);
         expect(decoded["renamed"]).toBeUndefined();
+    });
+
+    it('should not map properties when mapPropertyNames is disabled', () => {
+        const decoder = new AisDecoder({
+            propertyMap: [
+                ['mmsi', 'vesselId']
+            ]
+        });
+        const decoded = decoder.parse(testCases.msg1.raw) as AisSuccessResult;
+
+        expect(decoded.mmsi).toBe(205035000);
+        expect(decoded["vesselId"]).toBeUndefined();
     });
 });
 

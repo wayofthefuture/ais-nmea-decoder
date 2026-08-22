@@ -18,9 +18,13 @@ export type AisDecoderOptions = {
      */
     enableLogging?: boolean;
     /**
+     * Rename default property names to custom property names according to `propertyMap`.
+     */
+    mapPropertyNames?: boolean;
+    /**
      * Rename default property names to custom property names.
      */
-    propertyNames?: [string, string][] | null;
+    propertyMap?: [string, string][] | null;
 };
 
 export type AisMessageData = {
@@ -39,7 +43,8 @@ type SessionData = AisMessageData & {
 
 export const defaultOptions = {
     enableLogging: false,
-    propertyNames: null
+    mapPropertyNames: false,
+    propertyMap: null
 };
 
 /**
@@ -74,7 +79,7 @@ export class AisDecoder {
             if (parsed.status === 'pending') return parsed;
 
             const result = this.decodeMessage(parsed, input);
-            this.mapProperties(result);
+            if (this.options.mapPropertyNames) this.mapProperties(result);
 
             return result;
         } catch (error) {
@@ -471,10 +476,10 @@ export class AisDecoder {
      * Map standard property names to custom property names
      */
     private mapProperties(result: AisSuccessResult) {
-        const {propertyNames} = this.options;
-        if (!propertyNames) return;
+        const {propertyMap} = this.options;
+        if (!propertyMap) return;
 
-        for (const [key, value] of propertyNames) {
+        for (const [key, value] of propertyMap) {
             if (key === 'status' || result[key] === undefined) continue;
             result[value] = result[key];
             delete result[key];
