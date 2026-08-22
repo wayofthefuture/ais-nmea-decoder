@@ -55,12 +55,6 @@ const decoder = new AisDecoder({
         ['sog', 'speed'],
         ['cog', 'course']
     ],
-    qualityCheck: true,      // (default false) enable data integrity checks
-    qualityOptions: {
-        requiredDynamic: 2,  // (default 2) consecutive position reports required before accepting
-        requiredStatic: 1,   // (default 1) consecutive static messages required before accepting
-        maxDistanceNm: 1,    // (default 1) max distance (nm) between consecutive positions
-    },
 });
 ```
 

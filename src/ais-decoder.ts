@@ -7,9 +7,8 @@ https://www.apache.org/licenses/LICENSE-2.0
 */
 
 import {MSG_TYPE} from './constants';
-import {checkQuality, configureQuality} from './check-quality';
 import {PayloadBits} from './payload-bits';
-import type {AisParsedMessage, AisParseResult, AisPayloadMessage, AisSuccessResult, QualityOptions} from './definitions';
+import type {AisParsedMessage, AisParseResult, AisPayloadMessage, AisSuccessResult} from './definitions';
 
 const textEncoder = new TextEncoder();
 
@@ -22,11 +21,6 @@ export type AisDecoderOptions = {
      * Rename default property names to custom property names.
      */
     propertyNames?: [string, string][] | null;
-    /**
-     * Perform additional data integrity checks according to `qualityOptions`.
-     */
-    qualityCheck?: boolean;
-    qualityOptions?: QualityOptions;
 };
 
 export type AisMessageData = {
@@ -45,13 +39,7 @@ type SessionData = AisMessageData & {
 
 export const defaultOptions = {
     enableLogging: false,
-    propertyNames: null,
-    qualityCheck: false,
-    qualityOptions: {
-        requiredDynamic: 2,
-        requiredStatic: 1,
-        maxDistanceNm: 1
-    }
+    propertyNames: null
 };
 
 /**
@@ -72,7 +60,6 @@ export class AisDecoder {
 
     constructor(options?: AisDecoderOptions) {
         this.options = {...defaultOptions, ...options};
-        configureQuality(this.options.qualityOptions);
     }
 
     /**
@@ -87,7 +74,6 @@ export class AisDecoder {
             if (parsed.status === 'pending') return parsed;
 
             const result = this.decodeMessage(parsed, input);
-            if (this.options.qualityCheck) checkQuality(result);
             this.mapProperties(result);
 
             return result;
