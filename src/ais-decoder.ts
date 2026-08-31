@@ -488,10 +488,8 @@ export class AisDecoder {
 }
 
 /**
- * Check if a value is numeric (true for '0', 0, '1', 1, '1.1', 1.1, '-1.1', -1.1)
- * @param val The value to check
- * @returns True if the value is numeric, false otherwise
+ * Check if a value is a finite number or a string containing a finite number (i.e. '5.5' or 5.5)
  */
 export function isNumeric(val: unknown): val is string | number {
-    return (!isNaN(parseFloat(val as string)) && isFinite(val as number));
+    return !Number.isNaN(parseFloat(val as string)) && Number.isFinite(Number(val));
 }

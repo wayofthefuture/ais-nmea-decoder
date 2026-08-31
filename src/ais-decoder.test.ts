@@ -385,7 +385,7 @@ describe('isNumeric', () => {
         });
     }
 
-    for (const value of [null, undefined, 'a123', '123.a', '', ' ', NaN, Infinity, -Infinity]) {
+    for (const value of [null, undefined, 'a123', '123.a', '', ' ', NaN, Infinity, -Infinity, 'NaN', 'Infinity', '-Infinity', '1e999']) {
         it(`should return false for ${JSON.stringify(value)}`, () => {
             expect(isNumeric(value)).toBe(false);
         });
