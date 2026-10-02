@@ -28,6 +28,7 @@ export type AisDecoderOptions = {
 };
 
 export type AisMessageData = {
+    sentence: string;  //the full, trimmed NMEA sentence as received
     messagePrefix: string;
     totalFragments: number;
     currentFragment: number;
@@ -78,7 +79,7 @@ export class AisDecoder {
             const parsed = this.parseMessage(data);
             if (parsed.status === 'pending') return parsed;
 
-            const result = this.decodeMessage(parsed, input);
+            const result = this.decodeMessage(parsed);
             if (this.options.mapPropertyNames) this.mapProperties(result);
 
             return result;
@@ -130,6 +131,7 @@ export class AisDecoder {
         }
 
         return {
+            sentence: input,
             messagePrefix,
             totalFragments: +totalFragments,
             currentFragment: +currentFragment,
@@ -148,7 +150,8 @@ export class AisDecoder {
             return {
                 status: 'decoded',
                 payload: textEncoder.encode(rawPayload),
-                channel
+                channel,
+                fragments: [data.sentence]
             };
         }
         if (totalFragments !== 2) {
@@ -161,7 +164,8 @@ export class AisDecoder {
             this.session.receive = Date.now();
             return {
                 status: 'pending',
-                channel
+                channel,
+                fragments: [data.sentence]
             };
         }
         if (currentFragment !== 2) {
@@ -182,7 +186,7 @@ export class AisDecoder {
         // encode combined part 1 and part 2 message payloads
         let payload = textEncoder.encode(session.rawPayload + rawPayload);
         this.session = undefined;
-        return {status: 'decoded', payload, channel};
+        return {status: 'decoded', payload, channel, fragments: [session.sentence, data.sentence]};
     }
 
     /**
@@ -209,7 +213,7 @@ export class AisDecoder {
         return false;
     }
 
-    private decodeMessage(message: AisPayloadMessage, input: string): AisSuccessResult {
+    private decodeMessage(message: AisPayloadMessage): AisSuccessResult {
         const result = message as AisSuccessResult;
         const bits = new PayloadBits(result.payload);
 
@@ -252,7 +256,7 @@ export class AisDecoder {
                 this.decodeLongRangeBroadcast(bits, result);
                 break;
             default:
-                if (this.options.enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, MSG_TYPE[result.mtype], result.mmsi, input);
+                if (this.options.enableLogging) console.log('---- type=%d %s %s -> %s', result.mtype, MSG_TYPE[result.mtype], result.mmsi, result.fragments.join(' '));
                 throw new Error('Invalid message type: ' + result.mtype);
         }
 

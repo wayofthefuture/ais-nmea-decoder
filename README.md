@@ -75,6 +75,7 @@ Every result includes these **common fields**:
 | `mtype` | Message type number |
 | `repeat` | Repeat indicator |
 | `mmsi` | Maritime Mobile Service Identity |
+| `fragments` | Raw NMEA sentence(s) that make up the message (1 for single-part, 2 for two-part) |
 
 **Additional fields by message type:**
 

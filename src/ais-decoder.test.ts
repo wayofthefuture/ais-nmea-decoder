@@ -219,6 +219,7 @@ describe("single-part messages", () => {
         it(`should decode ${name} correctly`, () => {
             const result = decoder.parse(testCase.raw as string);
             expect(isDecoded(result)).toBe(true);
+            expect((result as AisSuccessResult).fragments).toEqual([testCase.raw]);
             for (const [field, value] of Object.entries(testCase)) {
                 if (field === 'raw') continue;
                 expect(value).toBe(result[field]);
@@ -232,14 +233,38 @@ describe("two-part messages", () => {
         it(`should decode ${name} correctly`, () => {
             let result = decoder.parse(testCase.raw[0]!) as AisPendingMessage;
             expect(result.status).toBe('pending');
+            expect(result.fragments).toEqual([testCase.raw[0]]);
             let finalResult = decoder.parse(testCase.raw[1]!) as AisSuccessResult;
             expect(isDecoded(finalResult)).toBe(true);
+            expect(finalResult.fragments).toEqual(testCase.raw);
             for (const [field, value] of Object.entries(testCase)) {
                 if (field === 'raw') continue;
                 expect(value).toBe(finalResult[field]);
             }
         });
     }
+});
+
+describe('fragments', () => {
+    it('should return the trimmed sentence for a single-part message', () => {
+        const result = decoder.parse(`  ${testCases.msg1.raw}\r\n`) as AisSuccessResult;
+        expect(result.fragments).toEqual([testCases.msg1.raw]);
+    });
+
+    it('should return part 1 while pending and both parts once complete', () => {
+        const [part1, part2] = testCases.msg19.raw as [string, string];
+        const pending = decoder.parse(part1) as AisPendingMessage;
+        expect(pending.fragments).toEqual([part1]);
+        const decoded = decoder.parse(part2) as AisSuccessResult;
+        expect(decoded.fragments).toEqual([part1, part2]);
+    });
+
+    it('should be renameable through the propertyMap', () => {
+        const decoder = new AisDecoder({mapPropertyNames: true, propertyMap: [['fragments', 'raw']]});
+        const result = decoder.parse(testCases.msg1.raw) as AisSuccessResult;
+        expect(result['raw']).toEqual([testCases.msg1.raw]);
+        expect(result.fragments).toBeUndefined();
+    });
 });
 
 describe('mapProperties', () => {

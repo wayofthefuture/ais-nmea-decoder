@@ -3,12 +3,16 @@ export type AisPendingMessage = {
     status: 'pending';
     /** VHF channel (A or B) */
     channel: string;
+    /** Raw NMEA sentence received so far (part 1 of a two-part message) */
+    fragments: string[];
 }
 
 export type AisPayloadMessage = {
     status: 'decoded';
     /** VHF channel (A or B) */
     channel: string;
+    /** Raw NMEA sentence(s) that make up this message (1 for single-part, 2 for two-part) */
+    fragments: string[];
     payload: Uint8Array;
 };
 
