@@ -24,14 +24,12 @@ export type AisErrorResult = {
 }
 
 export type AisSuccessResult = AisPayloadMessage & {
-    // common fields
     /** Message type number */
-    mtype?: number;
+    mtype: number;
     /** Repeat indicator */
-    repeat?: number;
+    repeat: number;
     /** Maritime Mobile Service Identity */
     mmsi: number;
-    // message specific fields
     /** Vessel class (`A` or `B`) | 1–3, 5, 18, 19, 24 | */
     class?: string;
     /** Navigation status | 1–3, 27 | */
