@@ -28,7 +28,9 @@ npm install ais-nmea-decoder
 
 ## Usage
 
-Feed each sentence in order - two-part messages (e.g. type 5) are handled automatically:
+Feed each sentence in order - two-part messages (e.g. type 5) are handled automatically.
+
+Note: some AIS messages only carry static data, so your vessel processing function should update your vessel store based on available properties.
 
 ```js
 import {AisDecoder, isDecoded} from 'ais-nmea-decoder';
@@ -40,7 +42,7 @@ function parseLine(line) {
     if (!isDecoded(result)) return;       // result type is narrowed to `AisSuccessResult` here
 
     console.log(result);                  // {status: 'decoded', channel, mtype, mmsi, lat, lon, ...}
-    return result;
+    updateVessel(result);                 // replace with your vessel processing function
 }
 
 parseLine('!AIVDM,1,1,,B,15MqhT0026:Otl8EoR4<H?vL0<1h,0*2C');
